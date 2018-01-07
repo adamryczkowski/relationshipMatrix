@@ -12,7 +12,8 @@ LazyData: true
 Imports: xlsx,
   stringr,
   yaml,
-  utils
+  utils,
+  R6
 Depends: data.table,
   purrr,
   tibble,

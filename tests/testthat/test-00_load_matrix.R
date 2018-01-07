@@ -9,7 +9,7 @@ test_that("Getting the properties right", {
              depvar1=1:10, depvar2=1:10, depvar3=1:10, depvar4=1:10, depvar5=1:10, depvar6=1:10,
              dvargrp1_1=1:10, dvargrp1_2=1:10, dvargrp1_3=1:10,
              dvargrp2_1=1:10, dvargrp2_2=1:10, dvargrp2_3=1:10)
-  df_structure<-danesurowe::create_df_from_df_structure(df)
+  df_structure<-danesurowe::create_df_from_df_structure(df, flag_include_vartype = TRUE)
   debugonce(read_sheet)
   m<-read_matrix('tests/testthat/test-00_matrix.xlsx', df_structure)
   expect_length(m, 29)

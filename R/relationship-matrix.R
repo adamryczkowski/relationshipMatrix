@@ -1,11 +1,10 @@
-#' relationship-matrix:  Reads the Excel-compatible relationship matrix, that contain list of all pairwise analysis to do.
+#' relationshipMatrix:  Reads the Excel-compatible relationship matrix, that contain list of all pairwise analysis to do.
 #'
 #'It doesn't perform any analysis. It is just a scaffolding
 #'
 #'
 #' @docType package
-#' @name relationship-matrix
-#' @import readxl
+#' @name relationshipMatrix
 NULL
 
 

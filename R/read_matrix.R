@@ -1,5 +1,5 @@
 
-read_matrix<-function(filename='shared/macierze_analiz.xlsx', dt_structure=NULL)
+read_matrix<-function(filename='shared/macierze_analiz.xlsx', dt_structure=NULL, aggregate_types=list())
 {
   if(is.null(dt_structure)){
     stop("dt_structure is a compulsory argument")
@@ -11,7 +11,7 @@ read_matrix<-function(filename='shared/macierze_analiz.xlsx', dt_structure=NULL)
   {
     sheet <- sheets[[i]]
     sheetname <- names(sheets)[[i]]
-    ret <- read_sheet(sheet = sheet, sheetname = sheetname,  dt_structure=dt_structure)
+    ret <- read_sheet(sheet = sheet, sheetname = sheetname,  dt_structure=dt_structure, aggregate_types=aggregate_types)
     tododf <- rbind(ret, tododf)
   }
   # fn<-Vectorize(make_cell_hash)
@@ -24,8 +24,18 @@ read_matrix<-function(filename='shared/macierze_analiz.xlsx', dt_structure=NULL)
 }
 
 
-read_sheet<-function(sheet, sheetname, dt_structure)
+read_sheet<-function(sheet, sheetname, dt_structure, aggregate_types=list())
 {
+  dt_structure<-cbind(dt_structure, is_aggregate=FALSE)
+  aggreg_df<-make_aggregateTypesDF(aggregate_types)
+  if(nrow(aggreg_df)>0) {
+    aggreg_df<-cbind(aggreg_df, is_aggregate=TRUE)
+  } else {
+    aggreg_df<-cbind(aggreg_df, is_aggregate=logical(0))
+  }
+
+  dt_structure<-rbind(dt_structure, aggreg_df)
+
   all_col_names<-dt_structure$colname
   #The recognize_sheet_format reads the format and parses all default dictionaries
   format<-recognize_sheet_format(sheet = sheet)
@@ -106,7 +116,6 @@ read_sheet<-function(sheet, sheetname, dt_structure)
   dt_structure_clone<-data.table::copy(dt_structure)
   colnames(dt_structure_clone)<-paste0('indepvar.', colnames(dt_structure))
   tododf<-dplyr::left_join(x=tododf,y=dt_structure_clone, by=c('indepvar'='indepvar.colname'), suffix=c('', 'indepvar.'))
-
   return(tododf)
 }
 
