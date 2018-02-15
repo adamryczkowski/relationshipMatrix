@@ -20,3 +20,4 @@ Depends: data.table,
   dplyr
 Remotes:
 	 adamryczkowski/danesurowe,
+	 adamryczkowski/depwalker

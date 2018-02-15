@@ -27,14 +27,24 @@ read_matrix<-function(filename='shared/macierze_analiz.xlsx', dt_structure=NULL,
 read_sheet<-function(sheet, sheetname, dt_structure, aggregate_types=list())
 {
   dt_structure<-cbind(dt_structure, is_aggregate=FALSE)
-  aggreg_df<-make_aggregateTypesDF(aggregate_types)
-  if(nrow(aggreg_df)>0) {
-    aggreg_df<-cbind(aggreg_df, is_aggregate=TRUE)
-  } else {
-    aggreg_df<-cbind(aggreg_df, is_aggregate=logical(0))
-  }
+  if(length(aggregate_types)>0) {
+    validate_aggregate_types(dt_structure, aggregate_types)
+    aggreg_df<-make_aggregateTypesDF(aggregate_types)
+    if(nrow(aggreg_df)>0) {
+      aggreg_df<-cbind(aggreg_df, is_aggregate=TRUE)
+    } else {
+      aggreg_df<-cbind(aggreg_df, is_aggregate=logical(0))
+    }
 
-  dt_structure<-rbind(dt_structure, aggreg_df)
+    for(cn in colnames(dt_structure)) {
+      if(! cn %in% colnames(aggreg_df)) {
+        t<-dt_structure[[cn]]
+        t[[1]]<-NA
+        aggreg_df[[cn]]<-rep(t[[1]], nrow(aggreg_df))
+      }
+    }
+    dt_structure<-rbind(dt_structure, aggreg_df)
+  }
 
   all_col_names<-dt_structure$colname
   #The recognize_sheet_format reads the format and parses all default dictionaries
@@ -112,10 +122,10 @@ read_sheet<-function(sheet, sheetname, dt_structure, aggregate_types=list())
 
   dt_structure_clone<-data.table::copy(dt_structure)
   colnames(dt_structure_clone)<-paste0('depvar.', colnames(dt_structure))
-  tododf<-dplyr::left_join(x=tododf,y=dt_structure_clone, by=c('depvar'='depvar.colname'), suffix=c('', 'depvar.'))
+  tododf<-dplyr::left_join(x=tododf,y=dt_structure_clone, by=c('depvar'='depvar.colname'), suffix=c('', getOption('property_depvar_prefix')))
   dt_structure_clone<-data.table::copy(dt_structure)
   colnames(dt_structure_clone)<-paste0('indepvar.', colnames(dt_structure))
-  tododf<-dplyr::left_join(x=tododf,y=dt_structure_clone, by=c('indepvar'='indepvar.colname'), suffix=c('', 'indepvar.'))
+  tododf<-dplyr::left_join(x=tododf,y=dt_structure_clone, by=c('indepvar'='indepvar.colname'), suffix=c('', getOption('property_indepvar_prefix')))
   return(tododf)
 }
 

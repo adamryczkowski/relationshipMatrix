@@ -12,12 +12,15 @@ NULL
 .onLoad	<-	function(libname,	pkgname)	{
   op	<-	options()
   op.relationshipMatrix	<-	list(
-    property_depvar	=	'depvar',
-    property_indepvar = 'indepvar',
-    property_groupvar = 'groupvar',
-    property_filter = 'filter',
-    property_depvar_prefix = 'dv.',
-    property_indepvar_prefix = 'iv.'
+    relationshipMatrix.chunkdf_properties=list(
+      depvar	=	'depvar',
+      indepvar = 'indepvar',
+      groupvar = 'groupvar',
+      filter = 'filter'),
+    relationshipMatrix.property_dispatcher = 'dispatcher',
+    relationshipMatrix.property_depvar_prefix = 'dv.',
+    relationshipMatrix.property_indepvar_prefix = 'iv.',
+    relationshipMatrix.is_aggregate = 'is_aggregate'
   )
   toset	<-	!(names(op.relationshipMatrix)	%in%	names(op))
   if(any(toset))	options(op.relationshipMatrix[toset])
