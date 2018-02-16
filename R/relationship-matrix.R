@@ -20,7 +20,9 @@ NULL
     relationshipMatrix.property_dispatcher = 'dispatcher',
     relationshipMatrix.property_depvar_prefix = 'dv.',
     relationshipMatrix.property_indepvar_prefix = 'iv.',
-    relationshipMatrix.is_aggregate = 'is_aggregate'
+    relationshipMatrix.is_aggregate = 'is_aggregate',
+    relationshipMatrix.reversed_vars = 'reversed_vars',
+    relationshipMatrix.prefix = 'prefix'
   )
   toset	<-	!(names(op.relationshipMatrix)	%in%	names(op))
   if(any(toset))	options(op.relationshipMatrix[toset])

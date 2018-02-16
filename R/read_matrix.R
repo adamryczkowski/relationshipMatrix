@@ -30,11 +30,13 @@ read_sheet<-function(sheet, sheetname, dt_structure, aggregate_types=list())
   if(length(aggregate_types)>0) {
     validate_aggregate_types(dt_structure, aggregate_types)
     aggreg_df<-make_aggregateTypesDF(aggregate_types)
+    aggreg_prop_name<-getOption('relationshipMatrix.is_aggregate')
     if(nrow(aggreg_df)>0) {
-      aggreg_df<-cbind(aggreg_df, is_aggregate=TRUE)
+      aggreg_df[[aggreg_prop_name]]<-TRUE
     } else {
-      aggreg_df<-cbind(aggreg_df, is_aggregate=logical(0))
+      aggreg_df[[aggreg_prop_name]]<-logical(0)
     }
+
 
     for(cn in colnames(dt_structure)) {
       if(! cn %in% colnames(aggreg_df)) {
@@ -70,11 +72,11 @@ read_sheet<-function(sheet, sheetname, dt_structure, aggregate_types=list())
 
   dict<-rep(list(list()), nrow(rekordy))
   recnr<-1
-  #  browser()
+#  browser()
 
   for (i in seq_along(dict)){
 #    cat(paste0(recnr,'\n'))
-#    if(recnr==73) browser()
+#    if(recnr==692) browser()
     row_nr <- rekordy[i,1]
     rec<-join_dicts(general_dict = format$global_properties, specific_dict =  format$row_properties[[row_nr]], conflict_action = 'ignore')
     col_nr <- rekordy[i,2]
@@ -95,7 +97,7 @@ read_sheet<-function(sheet, sheetname, dt_structure, aggregate_types=list())
 
       if(length(prop_filter)==0) prop_filter<-''
       if(length(prop_gr)==0) prop_gr<-''
-      subrecords<-do.call(expand.grid, list(filter=prop_filter, groupvar=prop_gr, indepvar=prop_iv, depvar=prop_dv))
+      subrecords<-do.call(expand.grid, list(filter=prop_filter, groupvar=prop_gr, indepvar=prop_iv, depvar=prop_dv, stringsAsFactors=FALSE))
 
       for(j in seq(nrow(subrecords))) {
         rec_tmp<-rec
@@ -108,28 +110,43 @@ read_sheet<-function(sheet, sheetname, dt_structure, aggregate_types=list())
       }
 
     }
-
   }
 
   all_names<-reduce(dict, function(x1,x2) unique(c(x1,names(x2))), .init=names(dict[[1]]))
 
-  tododf<-data.table(prefix=rep(sheet$getSheetName(), length(dict)))
-  for(myname in all_names) {
-    vec<-rep('', length(dict))
-    vec<-purrr::map_chr(dict, ~if(myname %in% names(.)) as.character(.[[myname]]) else NA_character_)
-    tododf[,(myname):=vec]
-  }
+#  browser()
+  tododf<-objectstorage::lists_to_df(dict, list_columns = c('prefix', 'prefix1'))
+  # tododf<-data.table(prefix=rep(sheet$getSheetName(), length(dict)))
+  # for(myname in all_names) {
+  #   vec<-rep('', length(dict))
+  #   vec<-purrr::map_chr(
+  #     dict,
+  #     ~if(myname %in% names(.)) {as.character(.[[myname]])} else {NA_character_})
+  #   tododf[,(myname):=vec]
+  # }
+
+  #browser()
+  dt_structure_clone<-data.table::copy(dt_structure)
+  depvar_prefix<-getOption('relationshipMatrix.property_depvar_prefix')
+  colnames(dt_structure_clone)<-paste0(depvar_prefix, colnames(dt_structure))
+  tododf<-dplyr::left_join(x=tododf,y=dt_structure_clone, by=c('depvar'=paste0(depvar_prefix, 'colname')), suffix=c('', depvar_prefix))
 
   dt_structure_clone<-data.table::copy(dt_structure)
-  colnames(dt_structure_clone)<-paste0('depvar.', colnames(dt_structure))
-  tododf<-dplyr::left_join(x=tododf,y=dt_structure_clone, by=c('depvar'='depvar.colname'), suffix=c('', getOption('property_depvar_prefix')))
-  dt_structure_clone<-data.table::copy(dt_structure)
-  colnames(dt_structure_clone)<-paste0('indepvar.', colnames(dt_structure))
-  tododf<-dplyr::left_join(x=tododf,y=dt_structure_clone, by=c('indepvar'='indepvar.colname'), suffix=c('', getOption('property_indepvar_prefix')))
+  indepvar_prefix<-getOption('relationshipMatrix.property_indepvar_prefix')
+  colnames(dt_structure_clone)<-paste0(indepvar_prefix, colnames(dt_structure))
+  tododf<-dplyr::left_join(x=tododf,y=dt_structure_clone, by=c('indepvar'=paste0(indepvar_prefix, 'colname')), suffix=c('', indepvar_prefix))
+  tododf<-as.data.table(tododf)
+  for(i in seq_len(ncol(tododf))) {
+    varname<-colnames(tododf)[[i]]
+    var<-tododf[[i]]
+    if('factor' %in% class(var)) {
+      tododf[,(varname):=as.character(var)]
+    }
+  }
   return(tododf)
 }
 
-known_keys<-c('indepvar', 'depvar', 'groupvar', 'filter')
+known_keys<-as.character(getOption('relationshipMatrix.chunkdf_properties'))
 
 get_comment_info<-function(macierz_kom, row, col) {
   ytxt <- macierz_kom[row, col]

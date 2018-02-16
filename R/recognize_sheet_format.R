@@ -44,8 +44,8 @@ recognize_sheet_format<-function(sheet) {
   ans$column_properties_box<-list(left=colnr, right = xls_range[['MaxCol']], top=2, bottom=rownr)
   tmp_val<-take_box(all_values, ans$column_properties_box)
   ans$column_properties<-read_properties_many(keys=tmp_val[,1],
-                                              values_list = split_matrix_into_list(tmp_val[,-1], flag_vertical = TRUE),
-                                              defaults = ans$global_properties)
+                                              values_list = split_matrix_into_list(tmp_val[,-1], flag_vertical = TRUE))
+#                                              defaults = ans$global_properties)
   iv<-take_box(all_values, list(left=ans$column_properties_box$left+1,
                                 right=ans$column_properties_box$right,
                                 top=ans$column_properties_box$bottom+1,
@@ -66,8 +66,8 @@ recognize_sheet_format<-function(sheet) {
                                 top=ans$row_properties_box$top+1,
                                 bottom=ans$row_properties_box$bottom))
   ans$row_properties<-read_properties_many(keys=tmp_val[1,],
-                                           values_list = split_matrix_into_list(tmp_val[-1,], flag_vertical = FALSE),
-                                           defaults = ans$global_properties)
+                                           values_list = split_matrix_into_list(tmp_val[-1,], flag_vertical = FALSE))
+#                                           defaults = ans$global_properties)
   if(length(dv)!=length(ans$row_properties)) {
     browser() #ERROR
   }

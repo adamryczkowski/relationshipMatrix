@@ -35,6 +35,108 @@
 
 
 
+#' This function generates the whole of the analysis, and it is the main entry point to the whole library.
+#'
+#' It is responsible for:
+#'
+#' \itemize{
+#' \item generating the structure (sections) of the resulting document,
+#' \item calling the \code{\function{do_cell}} to get the results of each cell (possibly by allocating computations to the
+#'       remote nodes),
+#' \item rendering the document
+#' }
+#'
+render_matrix<-function(cellsdf, author, title, format){
+  # Algorithm:
+  # 1. Convert prefix1 from NA to '', like all other prefixes
+
+  prefix_column<-getOption('relationshipMatrix.prefix')
+
+  if(! paste0(prefix_column, 1) %in% colnames(cellsdf) ) {
+    cellsdf[[paste0(prefix_column, 1)]]<-NA_character_
+  }
+  if(! paste0(prefix_column, 2) %in% colnames(cellsdf) ) {
+    cellsdf[[paste0(prefix_column, 2)]]<-NA_character_
+  }
+  if(! paste0(prefix_column, 3) %in% colnames(cellsdf) ) {
+    cellsdf[[paste0(prefix_column, 3)]]<-NA_character_
+  }
+
+
+
+  # 2. Gather all chapters
+  chapters<-new.env(parent=emptyenv())
+  for(i in seq_len(nrow(cellsdf))) {
+    paths<-c(cellsdf[[paste0(prefix_column, 1)]][[i]],
+      cellsdf[[paste0(prefix_column, 2)]][[i]],
+      cellsdf[[paste0(prefix_column, 3)]][[i]])
+
+    base_chapter<-chapters
+    for(path in paths) {
+      if(!is.na(path)) {
+        if(length(path)==1) {
+          ch_name<-path[[1]]
+          ch_prio<-NA_real_
+        } else if (length(path)==2) {
+          ch_name<-path[[2]]
+          ch_prio<-path[[1]]
+        } else {
+          browser()
+        }
+        if(is.na(ch_name)) {
+          browser()
+        }
+        if(ch_name %in% names(base_chapter)) {
+          tmp_chapter<-base_chapter[[ch_name]]
+          if(!is.na(ch_prio)) {
+            if(is.na(tmp_chapter$priority)) {
+              tmp_chapter$priority<-ch_prio
+            } else if(tmp_chapter$priority != ch_prio) {
+              browser() #We override the priority of the chapter
+            }
+            base_chapter[[ch_name]]<-tmp_chapter
+          }
+        } else {
+          tmp_chapter<-list(priority=ch_prio,
+                            env=new.env(parent = emptyenv()))
+          base_chapter[[ch_name]]<-tmp_chapter
+        }
+        base_chapter<-tmp_chapter$env
+      }
+    }
+  }
+
+  #3. Analyse the chapters to get their sort order
+
+}
+
+
+#' Generates pair of priority, path from strings with format \code{4:`Chapter name`}.
+#' Also contains a fallback mode that simply accepts strings without priority:
+#' \code{`Chapter name`}, or even without backticks: \code{Chapter name}
+#' @example
+#' str_path=c("1:`Ala ma kota`", "2:`Zosia-samosia`", "Taki sobie katalog", "`Inny katalog`", NA, '4:`Rozdział`/`podrozdział 1`', "`Rozdział`/`podrozdział 2`", "`Rozdział`/`podrozdział 1`/`sekcja 1`", "10:`Rozdział`/`podrozdział 1`/`sekcja 2`", "10:`Rozdział`/4:`podrozdział 1`/11:`sekcja 3`")
+parse_path<-function(str_path) {
+  paths<-stringr::str_split(str_path, pattern = stringr::regex('(?<=`)/(?=([^:]+:)?`)'))
+
+  match<-purrr::map(paths, function(path) {
+    #browser()
+    if(length(path)==1 && is.na(path)) {
+      return(list(priority=NA, path=NA))
+    } else {
+      match<-stringr::str_match(path, stringr::regex('^(([^:]+):)?`(.+)`$'))
+      match[is.na(match[,4]),4]<-path[is.na(match[,4])]
+      return(list(priority=match[,3], path=match[,4]))
+    }
+  })
+  paths<-stringr::str_split(match[,4], pattern = stringr::regex('`/([^:]+:)?`'))
+  return(list(priority=match[,3], path=paths))
+}
+
+split_paths<-function(str_path) {
+  stringr::str_split(str_path, pattern = stringr::regex('(?<=`)/(?=([^:]+:)?`)'))
+}
+
 #' This function translates the call to the cell into a call to get the reports. It parses the arguments,
 #' calls the dispatcher in the discovery mode and returns the task that actually gets the results
 #'
@@ -83,7 +185,7 @@
 #'
 #' @return List of results gathered by running the cell
 #'
-do_cell<-function(cellsdf, stats_dispatchers, report_dispatchers=list(), report_functions=list(), aggregates, filters, cellnr, df_task){
+do_cell<-function(cellsdf, stats_dispatchers, report_dispatchers=list(), report_functions=list(), aggregates=list(), filters, cellnr, df_task){
 
   #Sanity checks
 
@@ -138,10 +240,6 @@ do_cell<-function(cellsdf, stats_dispatchers, report_dispatchers=list(), report_
     }
   }
 
-
-  # Getting the parameters from the discovery mode.
-  pa<-discover_parameters(cellsdf = cellsdf, cellnr = cellnr, dispatchers = dispatchers)
-
   # Getting the chunkdf objects
 
   #1. Get list of the variables
@@ -187,12 +285,19 @@ do_cell<-function(cellsdf, stats_dispatchers, report_dispatchers=list(), report_
   }
 
   #1d. Todo? from custom-added auxiliary columns - another tododf property
+  browser()
+
 
   #2. Get filter
-  propname<-getOption('property_filter')
+  propname<-chunkdf_propnames[['filter']]
   filter<-cellsdf[[propname]][[cellnr]]
 
-  #3. Prepare the database
+  #3. Getting the parameters from the discovery mode.
+  dbobj<-relationshipMatrix::ChunkDB$new(chunkdf = df, depvar = dv, indepvar = iv, groupvar = gv, filtr = filter, flag_never_serve_df = TRUE)
+  pa<-discover_parameters(cellsdf = cellsdf, cellnr = cellnr, stats_dispatchers = stats_dispatchers, db=dbobj)
+
+
+  #4. Prepare the database
   if(!is.na(f)) {
     chunkdf<-df %>% filter_() %>% select_(c(dv, iv, gv))
   } else {
@@ -210,11 +315,11 @@ do_cell<-function(cellsdf, stats_dispatchers, report_dispatchers=list(), report_
 
 #Function calculates all fast parameters to get as accurate hash as possible.
 #It returns populated propertyAccessor and list of all properties required to get chunkdf
-discover_parameters<-function(cellsdf, cellnr, dispatchers) {
+discover_parameters<-function(cellsdf, cellnr, stats_dispatchers, db) {
   checkmate::assert_class(cellsdf, classes = 'data.frame')
   dispatcher_propname<-getOption('relationshipMatrix.property_dispatcher')
   testthat::expect_true(dispatcher_propname %in% colnames(cellsdf))
-  chunkdf_propnames<-getOption('relationshipMatrix.chunkdf_properties')
+  chunkdf_propnames<-as.character(getOption('relationshipMatrix.chunkdf_properties'))
 
   testthat::expect_gt(nrow(cellsdf), 0)
 
@@ -232,21 +337,20 @@ discover_parameters<-function(cellsdf, cellnr, dispatchers) {
   existing_chunkdf_propnames<-intersect(names(properties), chunkdf_propnames)
   basic_properties<-properties[existing_chunkdf_propnames]
 
-
-  pa<-propertyAccessor$new()
+  pa<-propertyAccessor$new(db = db, properties = properties)
   paprivate<-pa$.__enclos_env__$private
-  paprivate$setup_serve_properties(properties, data.frame(a=1))
+  #paprivate$setup_serve_properties(properties=properties, db=data.frame(a=1))
 
 
 
 
-
+  browser()
   #Get the dispatcher
-  dname<-cellsdf[[dispatcher_propname]][[cellnr]]
-  if(! dname %in% dispatchers) {
+  dname<-as.character(cellsdf[[dispatcher_propname]][[cellnr]])
+  if(! dname %in% names(stats_dispatchers)) {
     stop(paste0("Errors when processing cellsdf, row ", cellnr, ". Cannot find definition of dispatcher ", dname, ". "))
   }
-  disp<-dispatchers[[dname]]
+  disp<-stats_dispatchers[[dname]]
 
   #Execute the dispatcher in the discovery mode, to get the list of all relevant properties
   ans<-tryCatch(
@@ -257,7 +361,7 @@ discover_parameters<-function(cellsdf, cellnr, dispatchers) {
     stop(paste0("Dispatcher ", dname, " did not call serve_db() function."))
   }
 
-  if(ans$message!='Done') {
+  if(ans$message!='Done discovery mode') {
     stop(paste0("Error ", ans$message, " while calling the dispatcher ", dname, " in the discovery mode."))
   }
 
@@ -265,17 +369,19 @@ discover_parameters<-function(cellsdf, cellnr, dispatchers) {
   #We remove basic chunkdf properties from the records, as they will be accessed anyway
   proplist<-setdiff(paprivate$property_validators_, chunkdf_propnames)
   record<-list()
-  for(prop in sort(names(proplist))) {
-    value<-properties[[prop]]
-    validfn<-proplist[[prop]]
-    ans<-tryCatch(
-      validfn(value),
-      error = function(e) {}
-    )
-    if( 'error' %in% class(ans)) {
-      stop(paste0("Errors when processing cellsdf, row ", cellnr, ". Argument ", prop, " with value «", value, "» did not pass the validation function set by the dispatcher ", dname, ". "))
+  if(length(proplist)>0) {
+    for(prop in sort(names(proplist))) {
+      value<-properties[[prop]]
+      validfn<-proplist[[prop]]
+      ans<-tryCatch(
+        validfn(value),
+        error = function(e) {}
+      )
+      if( 'error' %in% class(ans)) {
+        stop(paste0("Errors when processing cellsdf, row ", cellnr, ". Argument ", prop, " with value «", value, "» did not pass the validation function set by the dispatcher ", dname, ". "))
+      }
+      record[[prop]]<-value
     }
-    record[[prop]]<-value
   }
 
 
@@ -284,32 +390,7 @@ discover_parameters<-function(cellsdf, cellnr, dispatchers) {
   paprivate$property_validators_<-NULL
 
   parameterList<-paprivate$cannonize()
-  indepvar<-record[[chunkdf_propnames ]]
 
-
-
-  #proplist is a list of all accessed properties together with the validation function for each of them
-  proplist<-paprivate$property_validators_
-  record<-list()
-  for(prop in sort(names(proplist))) {
-    value<-properties[[prop]]
-    validfn<-proplist[[prop]]
-    ans<- tryCatch(
-      validfn(value),
-      error = function(e) {}
-    )
-    if( 'error' %in% class(ans)) {
-      stop(paste0("Errors when processing cellsdf, row ", cellnr, ". Argument ", prop, " with value «", value, "» did not pass the validation function set by the dispatcher ", dname, ". "))
-    }
-    record[[prop]]<-value
-  }
-
-  # We disallow the accessor to override the basic properties
-  paprivate$all_properties_<-record
-  paprivate$property_validators_<-NULL
-
-  paprivate$all_properties_<-record
-  paprivate$property_validators_<-NULL
   return(list(pa=pa))
 }
 
