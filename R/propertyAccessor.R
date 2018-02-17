@@ -40,6 +40,10 @@ propertyAccessor<-R6::R6Class("propertyAccessor",
         stop("Wrong mode")
       }
     },
+    set_report_dispatcher=function(report_dispatcher) {
+      checkmate::checkClass(report_dispatcher, 'function')
+      private$report_dispatcher_<-report_dispatcher
+    },
     put_property=function(property_name, value) {
       if(private$mode_ %in% c(1,3) ) {
         private$all_properties_[[property_name]]<-value
@@ -87,6 +91,7 @@ propertyAccessor<-R6::R6Class("propertyAccessor",
     property_validators_=NA, #Named list with validator object for each property.
     mode_=NA, # 1 - learning the validators, 2 - done learning, exception was already thrown, 3 - serving the properties, 4 - done serving.
     db_=NA, # Database to serve,
+    report_dispatcher_=NULL,
     setup_serve_properties=function(db, properties) {
       private$mode_<-3
       testthat::expect_equal(class(properties), 'list')
@@ -103,7 +108,7 @@ propertyAccessor<-R6::R6Class("propertyAccessor",
       } else {
         props<-list()
       }
-      ans<-list(properties=props, reversed=private$reverse_vars_)
+      ans<-list(properties=props, reversed=private$reverse_vars_, report_dispatcher=private$report_dispatcher_)
     },
     reinit=function(initlist, db, newmode=3) {
       if(!'list' %in% class(initlist)) {

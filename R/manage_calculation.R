@@ -46,7 +46,9 @@
 #' \item rendering the document
 #' }
 #'
-render_matrix<-function(cellsdf, author, title, format){
+render_matrix<-function(cellsdf, author, title, format='docx',
+                        stats_dispatchers, report_dispatchers=list(), report_functions=list(),
+                        aggregates=list(), filters=list(), df_task){
   # Algorithm:
   # 1. Convert prefix1 from NA to '', like all other prefixes
 
@@ -66,12 +68,14 @@ render_matrix<-function(cellsdf, author, title, format){
 
   # 2. Gather all chapters
   chapters<-new.env(parent=emptyenv())
+  cellsdf$.chapter<-NA_character_
   for(i in seq_len(nrow(cellsdf))) {
     paths<-c(cellsdf[[paste0(prefix_column, 1)]][[i]],
       cellsdf[[paste0(prefix_column, 2)]][[i]],
       cellsdf[[paste0(prefix_column, 3)]][[i]])
 
     base_chapter<-chapters
+    chapter_path<-character(0)
     for(path in paths) {
       if(!is.na(path)) {
         if(length(path)==1) {
@@ -102,11 +106,24 @@ render_matrix<-function(cellsdf, author, title, format){
           base_chapter[[ch_name]]<-tmp_chapter
         }
         base_chapter<-tmp_chapter$env
+        chapter_path<-c(chapter_path, ch_name)
       }
     }
+    set(cellsdf, i, '.chapter', as.list(chapter_path))
+
   }
 
   #3. Analyse the chapters to get their sort order
+  #TODO
+
+  #4. Iterate over render_matrix and build the anaylisis cell-by-cell
+  for(i in seq_len(nrow(cellsdf))) {
+    chapter_path<-cellsdf[['.chapter']][[i]]
+
+    chapter<-do_cell(cellsdf = cellsdf, cellnr = i, stats_dispatchers = stats_dispatchers, report_dispatchers = report_dispatchers,
+                     report_functions = report_functions, aggregates = aggregates, filters = filters, df_task = df_task,
+                     chapter_path=chapter_path)
+  }
 
 }
 
@@ -185,7 +202,8 @@ split_paths<-function(str_path) {
 #'
 #' @return List of results gathered by running the cell
 #'
-do_cell<-function(cellsdf, stats_dispatchers, report_dispatchers=list(), report_functions=list(), aggregates=list(), filters, cellnr, df_task){
+do_cell<-function(cellsdf, stats_dispatchers, report_dispatchers=list(), report_functions=list(),
+                  aggregates=list(), filters, cellnr, df_task, chapter_path){
 
   #Sanity checks
 
@@ -224,9 +242,12 @@ do_cell<-function(cellsdf, stats_dispatchers, report_dispatchers=list(), report_
 
   checkmate::assertInteger(cellnr)
   testthat::expect_gte(nrow(cellsdf), cellnr)
+  checkmate::checkClass(chapter_path, 'list')
 
   #Getting the database. In future the database will only be allowed to be input in the depwalker-compatible way, either
   #as inputobject or parent(preferrably), so this function wouldn't need to juggle this big object at all.
+
+
 
   if('data.frame' %in% class(df_task)) {
     df<-df_task
@@ -258,6 +279,9 @@ do_cell<-function(cellsdf, stats_dispatchers, report_dispatchers=list(), report_
     }
     ag<-aggregates[[dv]]
     dv<-ag$all_vars
+    depvar<-ag
+  } else {
+    depvar<-dv
   }
 
   #1b. From indepvar
@@ -275,6 +299,9 @@ do_cell<-function(cellsdf, stats_dispatchers, report_dispatchers=list(), report_
     }
     ag<-aggregates[[iv]]
     iv<-ag$all_vars
+    indepvar<-ag
+  } else {
+    indepvar<-iv
   }
 
   #1c. From groupvar
@@ -291,24 +318,44 @@ do_cell<-function(cellsdf, stats_dispatchers, report_dispatchers=list(), report_
   #2. Get filter
   propname<-chunkdf_propnames[['filter']]
   filter<-cellsdf[[propname]][[cellnr]]
+  if(!is.na(filter)) {
+    if(filter %in% names(filters)) {
+      filter<-filters[[filter]]
+      filterstring<-filter$filterstring
+    } else {
+      browser()
+      stop(paste0("Cannot find filter ", filter, " in user-supplied list of filters"))
+    }
+  } else {
+    filterstring<-NA
+  }
 
   #3. Getting the parameters from the discovery mode.
-  dbobj<-relationshipMatrix::ChunkDB$new(chunkdf = df, depvar = dv, indepvar = iv, groupvar = gv, filtr = filter, flag_never_serve_df = TRUE)
+  dbobj<-relationshipMatrix::ChunkDB$new(chunkdf = df, depvar = dv, indepvar = iv, groupvar = gv, filtr = filterstring, flag_never_serve_df = TRUE)
   pa<-discover_parameters(cellsdf = cellsdf, cellnr = cellnr, stats_dispatchers = stats_dispatchers, db=dbobj)
 
 
+
   #4. Prepare the database
-  if(!is.na(f)) {
-    chunkdf<-df %>% filter_() %>% select_(c(dv, iv, gv))
+
+  groupvar<-gv
+  all_properties<-pa$canonnize()
+  dname<-as.character(cellsdf[[dispatcher_propname]][[cellnr]])
+
+  stats_dispatcher<-stats_dispatchers[[dname]]
+  if(!is.null(paprivate$report_dispatcher_)) {
+    report_dispatcher<-paprivate$report_dispatcher_
   } else {
-    chunkdf<-df %>% select_(c(dv, iv, gv))
+    if(!dname %in% report_dispatchers) {
+      stop(paste0("Cannot find ", dname, " among report_dispatchers"))
+    } else {
+      report_dispatchers<-report_dispatchers[[dname]]
+    }
   }
+  path<-system.file('00_get_report.R', package = 'relationshipMatrix')
+  source(path)
 
-  browser()
-  #Calculate the hash using this chunkdf, record and source of the dispatcher function and
-  #compare it again with the cache. If matches, then update the small cache object on disk and return.
-  #If still doesn't match, it means that some of the inputs have changed and we need to run the dispatcher fully
-
+  return(reports)
 }
 
 
@@ -473,31 +520,3 @@ prepare_tododf<-function(dt, matrix_file, dispatchers) {
   return(tododf)
 }
 
-
-
-#' Lowest level function that generates the cell.
-#'
-#' It accepts only the actual parameters that will be used for code generation.
-#'
-#' @varnames List of all
-#'
-#' @param properties Dictionary with all the custom properties needed for the cell, learned by the
-#'        discovery step on the dispatcher.
-do_cell_with_chunkdf<-function(varnames, properties, dispatcher, filter) {
-
-}
-
-#Function generates hash for the whole database together with the record needed by the cell
-cellhash_fulldf<-function(dfhash, record) {
-
-}
-
-#Function generates hash for the whole database together with the record needed by the cell
-cellhash_chunkdf<-function(dfhash, record) {
-
-}
-
-#Calculates hash of the whole database
-calculate_hash_db<-function(df) {
-
-}

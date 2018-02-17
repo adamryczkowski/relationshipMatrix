@@ -4,4 +4,4 @@
 
 paprivate<-pAcc$.__enclos_env__$private
 paprivate$reinit(initlist=propertyAccessor_cannonized, db=chunkdf, newmode=4)
-report<-fun(pAcc, statistics)
+report<-fun(pAcc, statistics, chapter)

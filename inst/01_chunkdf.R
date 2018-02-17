@@ -17,4 +17,4 @@ get_chunkdf<-function(variables, filterstring=NULL, df) {
   return(chunkdf[variables])
 }
 
-chunkdf<-get_chunkdf(variables, filterstring, dt)
+chunkdf<-get_chunkdf(variables, filterstring, df)

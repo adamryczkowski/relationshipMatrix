@@ -44,10 +44,10 @@ get_chunkdf<-function(df, indepvar, depvar, groupvar, filter) {
   }
 
   source('inst/01_chunkdf.R') #This call would be cached, if we used depwalker
-  return(list(df=chunkdf, indepvar=indepvar, depvar=depvar, groupvar=groupvar, filter=filter)
+  return(list(df=chunkdf, indepvar=indepvar, depvar=depvar, groupvar=groupvar, filter=filter))
 }
 
-do_cell<-function(df, indepvar, depvar, groupvar, filter, all_properties,  stats_dispatcher, report_dispatcher, report_functions) {
+do_cell<-function(df, indepvar, depvar, groupvar, filter, all_properties,  stats_dispatcher, report_dispatcher, report_functions, chapter) {
   #1. Grabs the chunk db
   chunkdf<-get_chunkdf(df=df, indepvar=indepvar, depvar=depvar, filter=filter, groupvar=groupvar)
 
