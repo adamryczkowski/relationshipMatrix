@@ -17,6 +17,9 @@ doc_table<-R6::R6Class(
       doc$add.paragraph(msg)
     }
   ),
+  active = list(
+    label = function() {return(private$tab_label_)}
+  ),
   #Can be accessed with object$.__enclos_env__$private
   private = list(
     table_caption_='',

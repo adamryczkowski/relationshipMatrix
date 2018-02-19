@@ -25,8 +25,11 @@ doc_chart<-R6::R6Class(
       preprocess_script_path<-system.file('process_one_png.sh', package = 'relationshipMatrix')
 
       #Here we would create depwalker object and return it
-      source(system.file('05_render_plot.R', package = 'relationshipMatrix'))
+      source(system.file('05_render_plot.R', package = 'relationshipMatrix'), local = TRUE)
     }
+  ),
+  active = list(
+    label = function() {return(private$chart_label_)}
   ),
   private = list(
     chart_caption_='',

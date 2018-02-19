@@ -23,8 +23,6 @@
 
 
 #library(R6) #Not needed actually; set by the task for us
-
-paprivate<-pAcc$.__enclos_env__$private
-paprivate$reinit(propertyAccessor_cannonized, chunkdf)
+#browser()
+pAcc=propertyAccessor$new(properties=all_properties, db=chunkdf, mode=3)
 report_functions<-report_dispatcher(pAcc, statistics)
-propertyAccessor_cannonized<-paprivate$cannonize()

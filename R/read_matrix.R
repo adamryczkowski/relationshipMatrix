@@ -14,11 +14,36 @@ read_matrix<-function(filename='shared/macierze_analiz.xlsx', dt_structure=NULL,
     ret <- read_sheet(sheet = sheet, sheetname = sheetname,  dt_structure=dt_structure, aggregate_types=aggregate_types)
     tododf <- rbind(ret, tododf)
   }
-  # fn<-Vectorize(make_cell_hash)
-  # hashes <- fn(filter=tododf$filter, indepvar = tododf$indepvar,
-  #              depvar = tododf$depvar, groupby = tododf$groupvar,
-  #              indepvartype = tododf$indepvartype, depvartype = tododf$depvartype)
-  # return(cbind(tododf, hash = hashes))
+
+
+  tododf<-as.data.table(tododf)
+  for(i in seq_len(ncol(tododf))) {
+    varname<-colnames(tododf)[[i]]
+    var<-tododf[[i]]
+    if('factor' %in% class(var)) {
+      tododf[,(varname):=as.character(var)]
+    }
+  }
+
+  props<-getOption('relationshipMatrix.chunkdf_properties')
+  prefixes<-c(getOption('relationshipMatrix.property_depvar_prefix'),
+              getOption('relationshipMatrix.property_indepvar_prefix'),
+              getOption('relationshipMatrix.property_groupvar_prefix'))
+  varname<-paste0(prefixes[[1]], 'label')
+  filter<-which(tododf[[varname]]=='')
+  if(length(filter)>0) {
+    data.table:set(tododf, filter, varname, tododf[[props$depvar]][filter])
+  }
+  varname<-paste0(prefixes[[2]], 'label')
+  filter<-which(tododf[[varname]]=='')
+  if(length(filter)>0) {
+    data.table:set(tododf, filter, varname, tododf[[props$indepvar]][filter])
+  }
+  varname<-paste0(prefixes[[3]], 'label')
+  filter<-which(tododf[[varname]]=='')
+  if(length(filter)>0) {
+    data.table:set(tododf, filter, varname, tododf[[props$groupvar]][filter])
+  }
 
   return(tododf)
 }
@@ -115,17 +140,8 @@ read_sheet<-function(sheet, sheetname, dt_structure, aggregate_types=list())
   all_names<-reduce(dict, function(x1,x2) unique(c(x1,names(x2))), .init=names(dict[[1]]))
 
 #  browser()
-  tododf<-objectstorage::lists_to_df(dict, list_columns = c('prefix', 'prefix1'))
-  # tododf<-data.table(prefix=rep(sheet$getSheetName(), length(dict)))
-  # for(myname in all_names) {
-  #   vec<-rep('', length(dict))
-  #   vec<-purrr::map_chr(
-  #     dict,
-  #     ~if(myname %in% names(.)) {as.character(.[[myname]])} else {NA_character_})
-  #   tododf[,(myname):=vec]
-  # }
+  tododf<-objectstorage::lists_to_df(dict, list_columns = c('prefix', 'prefix1', 'prefix2', 'prefix3'))
 
-  #browser()
   dt_structure_clone<-data.table::copy(dt_structure)
   depvar_prefix<-getOption('relationshipMatrix.property_depvar_prefix')
   colnames(dt_structure_clone)<-paste0(depvar_prefix, colnames(dt_structure))
@@ -135,14 +151,13 @@ read_sheet<-function(sheet, sheetname, dt_structure, aggregate_types=list())
   indepvar_prefix<-getOption('relationshipMatrix.property_indepvar_prefix')
   colnames(dt_structure_clone)<-paste0(indepvar_prefix, colnames(dt_structure))
   tododf<-dplyr::left_join(x=tododf,y=dt_structure_clone, by=c('indepvar'=paste0(indepvar_prefix, 'colname')), suffix=c('', indepvar_prefix))
-  tododf<-as.data.table(tododf)
-  for(i in seq_len(ncol(tododf))) {
-    varname<-colnames(tododf)[[i]]
-    var<-tododf[[i]]
-    if('factor' %in% class(var)) {
-      tododf[,(varname):=as.character(var)]
-    }
-  }
+
+  dt_structure_clone<-data.table::copy(dt_structure)
+  groupvar_prefix<-getOption('relationshipMatrix.property_groupvar_prefix')
+  colnames(dt_structure_clone)<-paste0(groupvar_prefix, colnames(dt_structure))
+  tododf<-dplyr::left_join(x=tododf,y=dt_structure_clone, by=c('groupvar'=paste0(groupvar_prefix, 'colname')), suffix=c('', groupvar_prefix))
+
+  #browser()
   return(tododf)
 }
 
@@ -177,3 +192,16 @@ expand_varnames<-function(varstring, col_names) {
   row_names <- as.character(unlist(expand_varnames_prv(row_names, col_names)))
   return(unique(row_names))
 }
+
+read_chapters<-function(yaml_path) {
+  #TODO. W przyszłości stąd będą odczytywane właściwości rozdziałów
+  browser()
+  yaml::read_yaml(yaml_path)
+  props<-c('caption', 'name', 'chart_folder', 'cache_folder')
+  for(i in seq_along(yaml)) {
+    depwalker:::test_for_elements(colnames = names(yaml[[i]]), required_items = '', optional_items = 'props')
+  }
+  read_chapters<-1
+
+}
+

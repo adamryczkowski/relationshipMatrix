@@ -20,6 +20,7 @@ NULL
     relationshipMatrix.property_dispatcher = 'dispatcher',
     relationshipMatrix.property_depvar_prefix = 'dv.',
     relationshipMatrix.property_indepvar_prefix = 'iv.',
+    relationshipMatrix.property_groupvar_prefix = 'gv.',
     relationshipMatrix.is_aggregate = 'is_aggregate',
     relationshipMatrix.reversed_vars = 'reversed_vars',
     relationshipMatrix.prefix = 'prefix'

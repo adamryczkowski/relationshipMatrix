@@ -1,19 +1,37 @@
-#mode=1: discovery mode. Only records property access.
+#mode=1: discovery mode. Records and sets property access.
 #mode=2: discovery mode finished. Only proprty list can be retrieved
-#mode=3: runtime mode with setting custom properties. Serves the properties and allows setting them
-#mode=4: runtime mode with setting custom properties after accessing the database. Disallows getting the properties, but allows setting them
-#mode=5: runtime mode readonly. Only serves the properties and database. No discovery possible.
+#mode=3: runtime mode readonly. Only serves the properties and database.
+#mode=4: runtime mode readonly, after passing the "done_discovery" mark. Will trigger any attempt to set any property
 
 propertyAccessor<-R6::R6Class("propertyAccessor",
   #By default initializes validation learning mode. To serve properties you need to call a private function
   #setup_serve_properties()
   public = list(
-    initialize=function(db, properties) {
+    initialize=function(db, properties=list(), mode=1) {
       checkmate::checkClass(properties, 'list')
-      private$mode_<-1
-      private$property_validators_<-list()
-      private$all_properties_<-properties
-      private$reverse_vars_<-FALSE
+      checkmate::checkClass(db, 'ChunkDB')
+      dbprivate<-db$.__enclos_env__$private
+      if(mode==1) {
+        private$property_validators_<-list()
+        private$all_properties_<-properties
+        private$report_dispatcher_<-NULL
+        dbprivate$flag_never_serve_df_<-TRUE
+      } else if (mode==3) {
+        dbprivate$flag_never_serve_df_<-FALSE
+        private$all_properties_<-properties
+        if('.reversed' %in% names(properties)) {
+          private$reverse_vars_<-properties$.reversed
+          properties$.reversed<-NULL
+        }
+        if('.report_dispatcher' %in% names(properties)) {
+          private$report_dispatcher_<-properties$.report_dispatcher
+          properties$.report_dispatcher<-NULL
+        }
+      } else {
+        stop("Illegal mode. Valid values: 1 and 3.")
+      }
+      dbprivate$metaserver_<-self
+      private$mode_<-mode
       private$db_<-db
     },
     reverse_vars=function() {
@@ -26,15 +44,15 @@ propertyAccessor<-R6::R6Class("propertyAccessor",
       if(private$mode_==1) {
         private$property_validators_[[property_name]]<-validator
         return(private$all_properties_[[property_name]])
-        return(NA)
       } else if (private$mode_==2) {
         browser()
         stop("Cannot accept validators and serve properties after accessing the database")
-      } else if (private$mode_%in% c(3,5)) {
-        return(private$all_properties_[[property_name]])
-      } else if (private$mode_==4) {
-        browser()
-        stop("Cannot serve properties after accessing the database")
+      } else if (private$mode_==3) {
+        if(!property_name %in% names(private$all_properties_)) {
+          stop(paste0("There is no property '", property_name, "'. Ask for the property during the discovery mode."))
+        } else {
+          return(private$all_properties_[[property_name]])
+        }
       } else {
         browser()
         stop("Wrong mode")
@@ -42,20 +60,43 @@ propertyAccessor<-R6::R6Class("propertyAccessor",
     },
     set_report_dispatcher=function(report_dispatcher) {
       checkmate::checkClass(report_dispatcher, 'function')
-      private$report_dispatcher_<-report_dispatcher
+      if('character' %in% class(private$report_dispatcher_)) {
+        browser()
+        stop("Cannot set report dispatcher here. Use it only in statistics dispatcher.")
+      }
+      if(private$mode_==1) {
+        private$report_dispatcher_<-report_dispatcher
+        return(invisible(NULL))
+      } else if (private$mode_%in%c(2,4)) {
+        browser()
+        stop("Cannot accept report_dispatcher function after discovery")
+      } else if (private$mode_==3) {
+        #do nothing. Report dispatcher already set.
+      } else {
+        browser()
+        stop("Wrong mode")
+      }
     },
     put_property=function(property_name, value) {
       if(private$mode_ %in% c(1,3) ) {
         private$all_properties_[[property_name]]<-value
         return(TRUE)
-      } else if (private$mode_==2) {
+      } else if (private$mode_ %in% c(2,4)) {
         browser()
         stop("Cannot accept validators and serve properties after accessing the database")
-      } else if (private$mode_==4) {
+      } else {
         browser()
-        stop("Cannot serve properties after accessing the database")
-      } else if (private$mode_==5) {
-        stop("Cannot set the property in this mode")
+        stop("Wrong mode")
+      }
+    },
+    done_discovery=function() {
+      if(private$mode_==1) {
+        private$mode_<-2
+        stop("Done discovery mode")
+      } else if(private$mode_ %in% c(2,4) ) {
+        #Do nothing. Exiting the discovery mode many times is legal.
+      } else if (private$mode_ == 3) {
+        private$mode_<-4
       } else {
         browser()
         stop("Wrong mode")
@@ -67,22 +108,11 @@ propertyAccessor<-R6::R6Class("propertyAccessor",
       if(private$reverse_vars_) {
         db<-db$reversed()
       }
-      if(private$mode_==1) {
-        return(db)
-#        stop("Done") #We trigger the error so we can grab the object
-      } else if (private$mode_==2) {
-        browser()
-        stop("You can't call the serve_db here")
-      } else if (private$mode_==3) {
-        private$mode_<-4
-        return(db)
-      } else if (private$mode_ %in% c(4,5)) {
-        return(db)
-      } else {
-        browser()
-        stop("Wrong mode")
-      }
+      return(db)
     }
+  ),
+  active = list(
+    report_dispatcher = function() {private$report_dispatcher_}
   ),
   #Can be accessed with object$.__enclos_env__$private
   private = list(
@@ -92,46 +122,38 @@ propertyAccessor<-R6::R6Class("propertyAccessor",
     mode_=NA, # 1 - learning the validators, 2 - done learning, exception was already thrown, 3 - serving the properties, 4 - done serving.
     db_=NA, # Database to serve,
     report_dispatcher_=NULL,
-    setup_serve_properties=function(db, properties) {
-      private$mode_<-3
-      testthat::expect_equal(class(properties), 'list')
-      private$all_properties_<-properties
-      testthat::expect_true('data.frame' %in% class(db))
-      private$db_<-db
-      private$property_validators_<-NA
-    },
-    cannonize=function() {
-      ans<-list()
-      if(length(private$all_properties_)>0) {
-        cnames<-order(names(private$all_properties_))
-        props<-private$all_properties_[cnames]
-      } else {
-        props<-list()
-      }
-      ans<-list(properties=props, reversed=private$reverse_vars_, report_dispatcher=private$report_dispatcher_)
-    },
-    reinit=function(initlist, db, newmode=3) {
-      if(!'list' %in% class(initlist)) {
+    #Returns all information specified by the user during the discovery phase. Needed after the discovery,
+    #to get list that will get pushed to the depwalker to build propertyAccessor in mode 3
+    get_discovered_properties_list=function() {
+      if(private$mode_!=2) {
         browser()
       }
-      if(is.null(db)) {
-        browser()
+
+      #Insert all accessed properties
+      proplist<-namesnames(private$property_validators_)
+      record<-list()
+      if(length(private$property_validators_)>0) {
+        for(prop in sort(names(private$property_validators_))) {
+          value<-private$all_properties_[[prop]]
+          validfn<-private$property_validators_[[prop]]
+          ans<-tryCatch(
+            validfn(value),
+            error = function(e) {}
+          )
+          if( 'error' %in% class(ans)) {
+            stop(paste0("Errors when processing cellsdf, row ", cellnr, ". Argument ", prop, " with value «", value, "» did not pass the validation function set by the dispatcher ", dname, ". "))
+          }
+          record[[prop]]<-value
+        }
       }
-      if(!all(c('properties', 'reversed') %in% names(initlist))) {
-        browser()
-        stop("Missing some properties in the cannonized object")
-      }
-      private$mode_<-newmode
-      private$property_validators_<-list()
-      private$all_properties_<-initlist$properties
-      private$reverse_vars_<-initlist$reversed
-      private$db_<-db
-      dbprivate<-private$db_$.__enclos_env__$private
-      if(newmode==1) {
-        dbprivate$flag_never_serve_df_<-TRUE
-      } else {
-        dbprivate$flag_never_serve_df_<-FALSE
-      }
+
+      #insert all manually set properties
+      all_other_names<-setdiff(names(private$all_properties_), names(private$property_validators_))
+      record<-c(record, private$all_properties_[all_other_names],
+                list(.reversed=private$reverse_vars_, .report_dispatcher=private$report_dispatcher_))
+      cnames<-order(names(record))
+      props<-record[cnames]
+      return(record)
     }
   )
 )

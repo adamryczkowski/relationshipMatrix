@@ -102,12 +102,15 @@ doc_container<-R6::R6Class(
   "doc_container",
   inherit = doc_reportElement,
   public = list(
-    initialize=function(parent, tags, flag_add_depth=TRUE, foldername='') {
+    initialize=function(parent, tags, flag_add_depth=TRUE, chart_foldername='', cache_foldername='') {
       checkmate::assert_flag(flag_add_depth)
-      checkmate::assertString(foldername)
+      checkmate::assertString(cache_foldername)
+      checkmate::assertString(chart_foldername)
       super$initialize(parent=parent, tags=tags)
       private$flag_add_depth_<-flag_add_depth
-      private$foldername_<-foldername
+
+      private$chart_foldername_<-chart_foldername
+      private$cache_foldername_<-cache_foldername
     },
     render = function(doc) {
       for(obj in private$children_) {
@@ -134,9 +137,9 @@ doc_container<-R6::R6Class(
     },
     get_folders=function(folder_type) { #Returns special folder path
       if(!is.null(private$parent_)) {
-        pathcat::path.cat(private$parent_$get_folders(folder_type), private$foldername_)
+        pathcat::path.cat(private$parent_$get_folders(folder_type), private$get_folder_direct(folder_type))
       } else {
-        private$foldername_
+        private$get_folder_direct(folder_type)
       }
     },
     add_element=function(obj){
@@ -146,6 +149,15 @@ doc_container<-R6::R6Class(
     }
   ),
   private = list(
+    get_folder_direct=function(folder_type) {
+      if(folder_type=='chart') {
+        return(private$chart_foldername_)
+      } else if (folder_type=='cache') {
+        return(private$cache_foldername_)
+      } else {
+        browser() #Unknown folder type
+      }
+    },
     next_free_section_number=function() {
       sec_nr<-1
       for(i in seq_along(private$children_)) {
@@ -158,7 +170,8 @@ doc_container<-R6::R6Class(
     },
     children_ = list(),
     flag_add_depth_ = TRUE,
-    foldername_ = ''
+    chart_foldername_='',
+    cache_foldername_=''
   )
 )
 
@@ -166,28 +179,33 @@ doc_Insertable<-R6::R6Class(
   "doc_Insertable",
   inherit = doc_container,
   public = list(
-    initialize=function(parent, tags, flag_add_depth, foldername=character(0)) {
+    initialize=function(parent, tags, flag_add_depth, chart_foldername='', cache_foldername='') {
       super$initialize(parent = parent, tags = tags,
                        flag_add_depth = TRUE,
-                       foldername = foldername)
+                       chart_foldername=chart_foldername, cache_foldername=cache_foldername)
     },
     insert_paragraph=function(text, tags=character(0)) {
       par<-doc_paragraph$new(parent = self, tags = tags, text = text)
       self$add_element(par)
+      return(invisible(NULL))
     },
-    insert_section=function(text, tags=character(0), foldername='') {
+    insert_section=function(text, tags=character(0), chart_foldername='', cache_foldername='') {
+      #browser() #Napisz kod, który prawidłowo wstawia labels
       sec_nr<-private$next_free_section_number()
-      sec<-doc_section$new(parent = self, tags = tags, text=text, number=sec_nr, foldername = foldername)
+      sec<-doc_section$new(parent = self, tags = tags, text=text, number=sec_nr,
+                           chart_foldername = chart_foldername, cache_foldername = cache_foldername)
       self$add_element(sec)
       return(sec)
     },
-    insert_table=function(table_caption, table_df, tags=character(0)) {
-      tbl<-doc_table$new(parent=self, tags=tags, table_caption=table_caption, table_df=table_df)
+    insert_table=function(caption, table_df, tags=character(0)) {
+      tbl<-doc_table$new(parent=self, tags=tags, table_caption=caption, table_df=table_df)
       self$add_element(tbl)
+      return(tbl$label)
     },
-    insert_chart=function(chart_caption, gg, tags=character(0)) {
-      cht<-doc_table$new(parent=self, tags=tags, chart_caption=table_caption, gg=gg)
+    insert_chart=function(caption, gg, tags=character(0)) {
+      cht<-doc_table$new(parent=self, tags=tags, chart_caption=caption, gg=gg)
       self$add_element(cht)
+      return(cht$label)
     }
   )
 )
@@ -196,23 +214,27 @@ doc_section<-R6::R6Class(
   "doc_section",
   inherit = doc_Insertable,
   public = list(
-    initialize=function(parent, tags, text, number=NA, foldername=character(0)) {
+    initialize=function(parent, tags, text, number=NA, chart_foldername='', cache_foldername='') {
       checkmate::assertString(text)
       checkmate::assertNumber(number, na.ok=TRUE)
       super$initialize(parent = parent, tags = tags,
                        flag_add_depth = TRUE,
-                       foldername = foldername)
+                       chart_foldername=chart_foldername, cache_foldername=cache_foldername)
       private$text_<-text
       private$number_<-number
     },
     render=function(doc) {
-      if(!is.na(private$number_)) {
-        text<-paste0(c(private$number_, self$parent$address_string()), collapse = '.')
-      } else {
-        text<-''
-      }
+#      if(!is.na(private$number_)) {
+#        text<-paste0(c(private$number_, self$parent$address_string()), collapse = '.')
+#      } else {
+#        text<-''
+#      }
 
-      doc$add.paragraph(pander::pandoc.header.return(paste0(text, private$text_), level = self$depth()))
+      text<-pander::pandoc.header.return(paste0(text, private$text_), level = self$depth())
+      if(is.na(private$number_)) {
+        text<-paste0(text, "{.unnumbered}")
+      }
+      doc$add.paragraph(text)
       super$render(doc)
     },
     address_string=function() {
@@ -256,9 +278,9 @@ doc_Document<-R6::R6Class(
   "doc_Document",
   inherit = doc_Insertable,
   public = list(
-    initialize=function(chart_foldername, cache_foldername, author, format='docx', title) {
-      super$initialize(parent=NULL, tags=character(0), foldername=foldername)
-      checkmate::testString(foldername)
+    initialize=function(chart_foldername=NULL, cache_foldername=NULL, author, format='docx', title) {
+      super$initialize(parent=NULL, tags=character(0),
+                       cache_foldername=cache_foldername, chart_foldername=chart_foldername)
       checkmate::testString(author)
       checkmate::testString(title)
       checkmate::testString(format)
@@ -267,8 +289,6 @@ doc_Document<-R6::R6Class(
       private$author_<-author
       private$format_<-format
       private$title_<-title
-      private$chart_foldername_<-chart_foldername
-      private$cache_foldername_<-cache_foldername
     },
     render=function(doc) {
       doc$author<-private$author_
@@ -295,9 +315,7 @@ doc_Document<-R6::R6Class(
   private = list(
     author_="Adam Ryczkowski",
     format_="docx",
-    title_='',
-    chart_foldername_='',
-    cache_foldername_=''
+    title_=''
   )
 )
 
@@ -310,9 +328,10 @@ doc_Standalone_Chapter<-R6::R6Class(
   "doc_Standalone_Chapter",
   inherit = doc_Insertable,
   public = list(
-    initialize=function(foldername) {
+    initialize=function(chart_foldername='', cache_foldername='') {
       super$initialize(parent = NULL, tags = character(0),
-                       flag_add_depth=FALSE, foldername=foldername)
+                       flag_add_depth=FALSE, chart_foldername=chart_foldername,
+                       cache_foldername=cache_foldername)
     },
     set_parent=function(newparent) {
       if(!is.null(private$parent_)) {
@@ -377,7 +396,7 @@ save_report<-function(report, filename='/tmp/report', flag_open = TRUE) {
   pander::panderOptions('decimal.mark', getOption("OutDec"))
   tmpfile <- tempfile(pattern='report_', tmpdir = getwd(), fileext = '')
   report$export(tmpfile, open=FALSE,
-                options='+RTS -K100000000 -RTS --filter pandoc-fignos --filter pandoc-tablenos -M "tablenos-caption-name:Tabela" -M "fignos-caption-name:Rycina"')
+                options='-f markdown+implicit_header_references +RTS -K100000000 -RTS --filter pandoc-fignos --filter pandoc-tablenos -M "tablenos-caption-name:Tabela" -M "fignos-caption-name:Rycina"')
   file.copy(paste0(tmpfile,'.md'), paste0(filename, '.md'))
   unlink(paste0(tmpfile,'.md'))
   file.copy(paste0(tmpfile,'.', report$format), paste0(filename, '.', report$format))
