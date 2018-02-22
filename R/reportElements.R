@@ -203,7 +203,7 @@ doc_Insertable<-R6::R6Class(
       return(tbl$label)
     },
     insert_chart=function(caption, gg, tags=character(0)) {
-      cht<-doc_table$new(parent=self, tags=tags, chart_caption=caption, gg=gg)
+      cht<-doc_chart$new(parent=self, tags=tags, chart_caption=caption, gg=gg)
       self$add_element(cht)
       return(cht$label)
     }

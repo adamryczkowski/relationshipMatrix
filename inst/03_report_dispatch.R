@@ -24,5 +24,7 @@
 
 #library(R6) #Not needed actually; set by the task for us
 #browser()
-pAcc=propertyAccessor$new(properties=all_properties, db=chunkdf, mode=3)
+dbobj<-relationshipMatrix::ChunkDB$new(chunkdf = chunkdf, depvar = depvar, indepvar = indepvar,
+                                       groupvar = groupvar, filtr = filter)
+pAcc=propertyAccessor$new(properties=properties, db=dbobj, mode=3)
 report_functions<-report_dispatcher(pAcc, statistics)

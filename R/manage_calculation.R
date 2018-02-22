@@ -146,7 +146,7 @@ render_matrix<-function(cellsdf, author, title, format='docx',
                      chapter_path=chapter_path,
                      chart_foldername=chart_foldername, cache_foldername=cache_foldername)
   }
-
+  return(chapter)
 }
 
 
@@ -366,6 +366,9 @@ do_cell<-function(cellsdf, stats_dispatchers, report_dispatchers=list(), report_
   gv<-cellsdf[[propname]][[cellnr]]
   if(is.na(gv)) {
     gv<-NULL
+    groupvar<-''
+  } else {
+    groupvar<-gv
   }
 
   #1d. Todo? from custom-added auxiliary columns - another tododf property
@@ -390,9 +393,10 @@ do_cell<-function(cellsdf, stats_dispatchers, report_dispatchers=list(), report_
   #3. Building the parameterAccessor with all the available parameters
   all_properties = as.list(cellsdf[cellnr,])
 
-  browser()
+  #browser()
   chapter<-doc_Standalone_Chapter$new(chart_foldername = chart_foldername, cache_foldername = cache_foldername)
   dispatcher_name<-as.character(cellsdf[[dispatcher_propname]][[cellnr]])
+  stats_dispatcher<-stats_dispatchers[[dispatcher_name]]
   report_dispatcher<-report_dispatchers[[dispatcher_name]]
 
   path<-system.file('00_get_report.R', package = 'relationshipMatrix')

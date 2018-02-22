@@ -43,19 +43,24 @@ propertyAccessor<-R6::R6Class("propertyAccessor",
     get_property=function(property_name, validator=identity) {
       if(private$mode_==1) {
         private$property_validators_[[property_name]]<-validator
+        if(!property_name %in% names(private$all_properties_)) {
+          warning(paste0("There is no property '", property_name, "'. Will use return NA."))
+          private$all_properties_[[property_name]]<-NA
+        }
         return(private$all_properties_[[property_name]])
-      } else if (private$mode_==2) {
-        browser()
-        stop("Cannot accept validators and serve properties after accessing the database")
-      } else if (private$mode_==3) {
+      } else {
         if(!property_name %in% names(private$all_properties_)) {
           stop(paste0("There is no property '", property_name, "'. Ask for the property during the discovery mode."))
-        } else {
-          return(private$all_properties_[[property_name]])
         }
-      } else {
-        browser()
-        stop("Wrong mode")
+        if (private$mode_==2) {
+          browser()
+          stop("Cannot accept validators and serve properties after accessing the database")
+        } else if (private$mode_%in%c(3,4)) {
+          return(private$all_properties_[[property_name]])
+        } else {
+          browser()
+          stop("Wrong mode")
+        }
       }
     },
     set_report_dispatcher=function(report_dispatcher) {
@@ -80,6 +85,7 @@ propertyAccessor<-R6::R6Class("propertyAccessor",
     put_property=function(property_name, value) {
       if(private$mode_ %in% c(1,3) ) {
         private$all_properties_[[property_name]]<-value
+        private$property_validators_[[property_name]]<-NA
         return(TRUE)
       } else if (private$mode_ %in% c(2,4)) {
         browser()
@@ -130,7 +136,7 @@ propertyAccessor<-R6::R6Class("propertyAccessor",
       }
 
       #Insert all accessed properties
-      proplist<-namesnames(private$property_validators_)
+      proplist<-names(private$property_validators_)
       record<-list()
       if(length(private$property_validators_)>0) {
         for(prop in sort(names(private$property_validators_))) {
@@ -147,10 +153,7 @@ propertyAccessor<-R6::R6Class("propertyAccessor",
         }
       }
 
-      #insert all manually set properties
-      all_other_names<-setdiff(names(private$all_properties_), names(private$property_validators_))
-      record<-c(record, private$all_properties_[all_other_names],
-                list(.reversed=private$reverse_vars_, .report_dispatcher=private$report_dispatcher_))
+      record<-c(record, list(.reversed=private$reverse_vars_, .report_dispatcher=private$report_dispatcher_))
       cnames<-order(names(record))
       props<-record[cnames]
       return(record)

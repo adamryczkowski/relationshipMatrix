@@ -3,7 +3,7 @@ ChunkDB<-R6::R6Class(
   #DB accessor that can nicely format all labels
   public =
     list(
-      initialize=function(chunkdf, depvar, indepvar, groupvar, filtr, flag_never_serve_df) {
+      initialize=function(chunkdf, depvar, indepvar, groupvar, filtr, flag_never_serve_df=FALSE) {
         private$chunkdf_<-chunkdf
         private$depvar_<-depvar
         private$indepvar_<-indepvar
@@ -12,13 +12,16 @@ ChunkDB<-R6::R6Class(
         private$flag_never_serve_df_<-flag_never_serve_df
       },
       depvar_label = function(flag_md=FALSE) {
-        get_labels_var(var=private$depvar_, dt=private$chunkdf_, flag_md=flag_md, private$metaserver_)
+        prefix<-getOption('relationshipMatrix.property_depvar_prefix')
+        get_labels_var(var=private$depvar_, dt=private$chunkdf_, flag_md=flag_md, private$metaserver_, prefix = prefix)
       },
       indepvar_label = function(flag_md=FALSE) {
-        get_labels_var(var=private$indepvar_, dt=private$chunkdf_, flag_md=flag_md, private$metaserver_)
+        prefix<-getOption('relationshipMatrix.property_indepvar_prefix')
+        get_labels_var(var=private$depvar_, dt=private$chunkdf_, flag_md=flag_md, private$metaserver_, prefix = prefix)
       },
       groupvar_label = function(flag_md=FALSE) {
-        get_labels_var(var=private$groupvar_, dt=private$chunkdf_, flag_md=flag_md, private$metaserver_)
+        prefix<-getOption('relationshipMatrix.property_groupvar_prefix')
+        get_labels_var(var=private$depvar_, dt=private$chunkdf_, flag_md=flag_md, private$metaserver_, prefix = prefix)
       },
       df_label = function(flag_md=FALSE) {
 
@@ -38,7 +41,8 @@ ChunkDB<-R6::R6Class(
       is_grouped = function() {!is.na(private$groupvar_)},
       chunkdf_ivdvgv = function() {
         if(private$flag_never_serve_df_) {
-          stop("Done discovery mode") #We trigger the error so we can grab the object
+          private$metaserver_$done_discovery()
+#          stop("Done discovery mode") #We trigger the error so we can grab the object
         }
         if(self$is_depvar_aggregate() || self$is_indepvar_aggregate()) {
           stop("Cannot cat ivdvgv format if either of variables is aggregate")
@@ -136,6 +140,12 @@ get_labels_var<-function(var, dt, flag_md=FALSE, pAcc=NULL, prefix='.') {
   } else {
     varlab<-pAcc$get_property(paste0(prefix,'label'))
     varunit<-pAcc$get_property(paste0(prefix,'units'))
+    if(is.na(varunit)) {
+      varunit<-''
+    }
+    if(is.na(varlab)) {
+      browser()
+    }
   }
 
   if(flag_md) {

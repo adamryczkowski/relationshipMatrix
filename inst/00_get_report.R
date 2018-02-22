@@ -50,18 +50,18 @@ get_chunkdf<-function(df, indepvar, depvar, groupvar, filter) {
 
 #all_properites contain all properties. That's why we need to do a discovery run for each user-supplied function beforehand
 do_cell<-function(df, indepvar, depvar, groupvar, filter, all_properties,  stats_dispatcher, report_dispatcher, report_functions, chapter) {
-  browser()
+#  browser()
   #1. Grabs the chunk db
   chunkdf<-get_chunkdf(df=df, indepvar=indepvar, depvar=depvar, filter=filter, groupvar=groupvar)
   dbobj<-relationshipMatrix::ChunkDB$new(chunkdf = df, depvar = dv, indepvar = iv,
-                                         groupvar = gv, filtr = filterstring)
+                                         groupvar = gv, filtr = filter$filterstring, flag_never_serve_df = TRUE)
 
 
 
   #2. Run statistics function
 
   #a) Generate the propertyAccessor. It will enter the mode 1 to do discovery
-  pAcc<-propertyAccessor$new(db=chunkdf, properties = all_properties)
+  pAcc<-propertyAccessor$new(db=dbobj, properties = all_properties)
 
   #b) Getting the parameters from the discovery mode.
   discover_parameters(pa=pAcc, user_function=stats_dispatcher)
@@ -70,29 +70,29 @@ do_cell<-function(df, indepvar, depvar, groupvar, filter, all_properties,  stats
   #Outputs statistics and propertyAccessor
 
   #c) Run the function
-  all_properties<-pAcc$.__enclos_env__$private$get_discovered_properties_list()
+  properties<-pAcc$.__enclos_env__$private$get_discovered_properties_list()
   source(system.file('02_stats_dispatch.R', package = 'relationshipMatrix'), local = TRUE)
 
 
   #3. Run the report function
 
-  if(!is.null(pa$report_dispatcher)) {
-    report_dispatcher<-pa$report_dispatcher
+  if(!is.null(pAcc$report_dispatcher)) {
+    report_dispatcher<-pAcc$report_dispatcher
   } else {
     if(is.null(report_dispatcher)) {
       stop(paste0("Cannot find report_dispatcher for the cell"))
     }
   }
 
-  #a) Generate the propertyAccessor. It will enter the mode 1 to do discovery
-  pAcc<-propertyAccessor$new(db=chunkdf, properties = all_properties)
+  #a) Generate again the propertyAccessor. It will enter the mode 1 to do discovery
+  pAcc<-propertyAccessor$new(db=dbobj, properties = all_properties)
 
   #b) Getting the parameters from the discovery mode.
-  discover_parameters(pa=pAcc, user_function=stats_dispatcher, user_arguments=list(statistics=statistics))
+  discover_parameters(pa=pAcc, user_function=report_dispatcher, user_arguments=list(statistics=statistics))
 
 
   #c) Run the function
-  all_properties<-pAcc$.__enclos_env__$private$get_discovered_properties_list()
+  properties<-pAcc$.__enclos_env__$private$get_discovered_properties_list()
   source(system.file('03_report_dispatch.R', package = 'relationshipMatrix'), local = TRUE)
 
 
@@ -108,11 +108,12 @@ do_cell<-function(df, indepvar, depvar, groupvar, filter, all_properties,  stats
       }
     }
     #a) Generate the propertyAccessor. It will enter the mode 1 to do discovery
-    pAcc<-propertyAccessor$new(db=chunkdf, properties = all_properties)
+    pAcc<-propertyAccessor$new(db=dbobj, properties = all_properties)
+#    browser()
 
     #b) Getting the parameters from the discovery mode.
-    discover_parameters(pa=pAcc, user_function=stats_dispatcher, user_arguments=list(statistics=statistics, chapter=chapter))
-    all_properties<-pAcc$.__enclos_env__$private$get_discovered_properties_list()
+    discover_parameters(pa=pAcc, user_function=fun, user_arguments=list(statistics=statistics, chapter=chapter))
+    properties<-pAcc$.__enclos_env__$private$get_discovered_properties_list()
     source(system.file('04_report_gen.R', package = 'relationshipMatrix'), local = TRUE)
     reports[[i]]<-report
   }
@@ -124,8 +125,8 @@ do_cell<-function(df, indepvar, depvar, groupvar, filter, all_properties,  stats
 #discovery phase.
 discover_parameters<-function(pa, user_function, user_arguments=list()) {
   checkmate::assert_class(user_function, classes = 'function')
-  checkmate::assert_class(user_function, classes = 'propertyAccessor')
-  checkmate::assert_class(user_function, classes = 'list')
+  checkmate::assert_class(pa, classes = 'propertyAccessor')
+  checkmate::assert_class(user_arguments, classes = 'list')
 
 
 
@@ -135,11 +136,11 @@ discover_parameters<-function(pa, user_function, user_arguments=list()) {
     error = function(e) e
   )
   if(! 'error' %in% class(ans)) {
-    stop(paste0("Dispatcher ", dname, " did not call serve_db() function."))
+    stop(paste0("Dispatcher did not call done_discovery() function."))
   }
 
   if(ans$message!='Done discovery mode') {
-    stop(paste0("Error ", ans$message, " while calling the dispatcher ", dname, " in the discovery mode."))
+    stop(paste0("Error ", ans$message, " while calling the dispatcher in the discovery mode."))
   }
 
   return(pa)

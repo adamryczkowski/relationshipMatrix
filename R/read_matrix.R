@@ -32,17 +32,17 @@ read_matrix<-function(filename='shared/macierze_analiz.xlsx', dt_structure=NULL,
   varname<-paste0(prefixes[[1]], 'label')
   filter<-which(tododf[[varname]]=='')
   if(length(filter)>0) {
-    data.table:set(tododf, filter, varname, tododf[[props$depvar]][filter])
+    data.table::set(tododf, filter, varname, tododf[[props$depvar]][filter])
   }
   varname<-paste0(prefixes[[2]], 'label')
   filter<-which(tododf[[varname]]=='')
   if(length(filter)>0) {
-    data.table:set(tododf, filter, varname, tododf[[props$indepvar]][filter])
+    data.table::set(tododf, filter, varname, tododf[[props$indepvar]][filter])
   }
   varname<-paste0(prefixes[[3]], 'label')
   filter<-which(tododf[[varname]]=='')
   if(length(filter)>0) {
-    data.table:set(tododf, filter, varname, tododf[[props$groupvar]][filter])
+    data.table::set(tododf, filter, varname, tododf[[props$groupvar]][filter])
   }
 
   return(tododf)

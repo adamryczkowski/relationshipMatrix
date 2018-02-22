@@ -2,5 +2,7 @@
 #
 #Arguments: function name
 #browser()
-pAcc=propertyAccessor$new(properties=all_properties, db=chunkdf, mode=3)
+dbobj<-relationshipMatrix::ChunkDB$new(chunkdf = chunkdf, depvar = depvar, indepvar = indepvar,
+                                       groupvar = groupvar, filtr = filter)
+pAcc=propertyAccessor$new(properties=properties, db=dbobj, mode=3)
 report<-fun(pAcc, statistics, chapter)
