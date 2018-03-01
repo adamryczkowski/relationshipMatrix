@@ -47,15 +47,17 @@
 #' }
 #'
 #'
-render_matrix<-function(cellsdf, author, title, format='docx',
+render_matrix<-function(cellsdf, author='Adam Ryczkowski', format='docx', title="Analiza statystyczna",
                         stats_dispatchers, report_dispatchers=list(), report_functions=list(),
                         aggregates=list(), filters=list(), df_task,
-                        chart_foldername='chapter', cache_foldername='cache'){
+                        chart_foldername='chapter', cache_foldername='cache'
+                        ){
   # Algorithm:
   # 1. Convert prefix1 from NA to '', like all other prefixes
 
   cellsdf<-enhance_tododf(cellsdf, filters)
 
+  title_property<-getOption('relationshipMatrix.property_cell_title')
   prefix_column<-getOption('relationshipMatrix.prefix')
   dv_prefix<-getOption('relationshipMatrix.property_depvar_prefix')
   iv_prefix<-getOption('relationshipMatrix.property_indepvar_prefix')
@@ -89,7 +91,6 @@ render_matrix<-function(cellsdf, author, title, format='docx',
       cellsdf[[paste0(prefix_column, 2)]][[i]],
       cellsdf[[paste0(prefix_column, 3)]][[i]])
 
-    cat(paste0('i=',i,'\n'))
 #    if(i==26) browser()
     base_chapter<-chapters
     chapter_path<-character(0)
@@ -131,22 +132,77 @@ render_matrix<-function(cellsdf, author, title, format='docx',
         chapter_path<-c(chapter_path, ch_name)
       }
     }
+    cell_title<-cellsdf[[title_property]][[i]]
+    if(cell_title!='') {
+      chapter_path<-c(chapter_path, cell_title)
+      tmp_chapter<-list(priority=NA_real_,
+                        env=new.env(parent = emptyenv()))
+      base_chapter[[cell_title]]<-tmp_chapter
+
+    }
     cellsdf[['.chapter']]<-list(chapter_path)
   }
 
-  #3. Analyse the chapters to get their sort order
-  #TODO
+  #3. Now generate the document core chapters based on this layout
+  doc<-doc_Document$new(chart_foldername = chart_foldername, cache_foldername = cache_foldername,
+                        author = author, format = format, title = title)
+  insert_chapters<-function(container, env_chapters, tags=character(0)) {
+    df<-tibble(priorities=as.numeric(map_chr(as.list(env_chapters), 'priority')),
+               names=names(env_chapters))
+    df_ref<-df %>% dplyr::arrange(priorities, names)
 
-  #4. Iterate over render_matrix and build the anaylisis cell-by-cell
+
+    p<-map_int(df_ref$names, ~which(df$names %in% .))
+
+    for(i in p) {
+      rec<-as.list(df[i,])
+      n<-rec$names
+      obj<-env_chapters[[n]]
+      if('tags' %in% names(obj)) {
+        tags<-obj$tags
+      } else {
+        tabs<-character(0)
+      }
+      if('tags' %in% names(obj)) {
+        tags<-obj$tags
+      } else {
+        tabs<-character(0)
+      }
+      if('chart_foldername' %in% names(obj)) {
+        chart_foldername<-obj$tags
+      } else {
+        chart_foldername<-''
+      }
+      if('cache_foldername' %in% names(obj)) {
+        cache_foldername<-obj$tags
+      } else {
+        cache_foldername<-''
+      }
+      ch<-container$insert_section(n, tags=tags, chart_foldername=chart_foldername, cache_foldername=cache_foldername)
+      insert_chapters(ch, obj$env)
+    }
+    env_chapters$doc<-container
+  }
+  insert_chapters(doc, chapters)
+
+  #4. Iterate over render_matrix and build the anaylisis cell-by-cell. Each retreived piece is put into the corresponding chapter
   for(i in seq_len(nrow(cellsdf))) {
+    cat(paste0('i=',i,'\n'))
+
     chapter_path<-cellsdf[['.chapter']][[i]]
 
-    chapter<-do_cell(cellsdf = cellsdf, cellnr = i, stats_dispatchers = stats_dispatchers, report_dispatchers = report_dispatchers,
-                     report_functions = report_functions, aggregates = aggregates, filters = filters, df_task = df_task,
-                     chapter_path=chapter_path,
-                     chart_foldername=chart_foldername, cache_foldername=cache_foldername)
+    raw_chapters<-do_cell(cellsdf = cellsdf, cellnr = i, stats_dispatchers = stats_dispatchers, report_dispatchers = report_dispatchers,
+                         report_functions = report_functions, aggregates = aggregates, filters = filters, df_task = df_task,
+                         chapter_path=chapter_path,
+                         chart_foldername=chart_foldername, cache_foldername=cache_foldername)
+
+    target_chapter<-doc$get_chapter_by_path(chapter_path)
+    raw_chapters$insert_into(target_chapter)
   }
-  return(chapter)
+
+
+
+  return(doc)
 }
 
 
@@ -179,7 +235,83 @@ enhance_tododf<-function(tododf, filters) {
   colnames(filters_df)<-paste0(filter_prefix, colnames(filters_df))
   tododf<-dplyr::left_join(x=tododf,y=filters_df, by=c('filter'=paste0(filter_prefix, 'name')), suffix=c('', filter_prefix))
 
+  #Add cell title (if missing)
+  cell_title_name<-getOption('relationshipMatrix.property_cell_title')
+  if(!cell_title_name %in% colnames(tododf)) {
+    tododf[[cell_title_name]]<-NA_character_
+  }
+
+  tododf<-data.table(tododf)
+  #Setting title for all cells that have missing title cell
+  for(i in seq_len(nrow(tododf))) {
+    if(is.na(tododf[[cell_title_name]][[i]])) {
+      indepvarname<-tododf[[paste0(iv_prefix, 'label')]][[i]]
+      depvarname<-tododf[[paste0(dv_prefix, 'label')]][[i]]
+      if(tododf$language[[i]]=='PL') {
+        tododf[i, (cell_title_name):=paste0(indepvarname, ' a ', depvarname)]
+      } else {
+        tododf[i, (cell_title_name):=paste0(indepvarname, ' vs ', depvarname)]
+      }
+    }
+  }
+
+  #browser()
+  tododf[, (paste0(dv_prefix, 'f.o.b')):=guess_fob(tododf=tododf, prefix=dv_prefix)]
+  tododf[, (paste0(iv_prefix, 'f.o.b')):=guess_fob(tododf=tododf, prefix=iv_prefix)]
+  tododf[, (paste0(gv_prefix, 'f.o.b')):=guess_fob(tododf=tododf, prefix=gv_prefix)]
+
   return(tododf)
+}
+
+count_levels<-function(str) {
+  l<-stringr::str_split(str, pattern=stringr::regex('(?<=\\");(?=([^=]+=))'))
+  return(length(l[[1]]))
+}
+
+guess_fob_1<-function(tododf, i, prefix='.dv') {
+  fob<-tododf[[paste0(prefix, 'f.o.b')]][[i]]
+  if(!is.na(fob)) {
+    return(fob)
+  }
+
+  count<-count_levels(tododf[[paste0(prefix, 'labels_string')]][[i]])
+  if(count==2) {
+    return(3)
+  } else if (count<=1) {
+    return(-1)
+  }
+
+  typ <- tododf[[paste0(prefix, 'vartype')]][[i]]
+  if(typ %in% c('F', 'L')) {
+    if(count==2) {
+      fob<-3
+      #        data.table::setattr(var, 'f.o.b', 3)
+    } else {
+      if (tododf[[paste0(prefix, 'limit_to_labels')]][[i]]) {
+        cl<-stringr::str_split(tododf[[paste0(prefix, 'class')]][[i]], ',')
+        if('ordered' %in% cl) {
+          fob<-2
+        } else {
+          fob<-1
+        }
+      } else {
+        fob<-2
+      }
+    }
+  } else if (typ %in% c('I', 'N', 'D') ) {
+    fob<-0
+  } else if (typ == '0') {
+    fob<-3
+  } else if (typ == 'S') {
+    fob<-NA
+  } else {
+    browser()
+  }
+  return(fob)
+}
+
+guess_fob<-function(tododf, prefix='.dv') {
+  map_int(seq_len(nrow(tododf)), ~as.integer(guess_fob_1(tododf=tododf, i=., prefix=prefix )))
 }
 
 #' Generates pair of priority, path from strings with format \code{4:`Chapter name`}.
@@ -328,11 +460,8 @@ do_cell<-function(cellsdf, stats_dispatchers, report_dispatchers=list(), report_
   propname<-paste0(getOption('relationshipMatrix.property_depvar_prefix'),
                    getOption('relationshipMatrix.is_aggregate'))
   if(cellsdf[[propname]][[cellnr]]) {
-    if(! db %in% names(aggregates)) {
-      stop(paste0("Errors when processing cellsdf, row ", cellnr, ". Cannot find aggregate for aggregate dependent variable ", propname))
-    }
-    if(!dv %in% names(aggregates)) {
-      stop(paste0("Cannot find the aggregate in the aggregates argument"))
+    if(! dv %in% names(aggregates)) {
+      stop(paste0("Errors when processing cellsdf, row ", cellnr, ". Cannot find aggregate dependent variable", dv, "." ))
     }
     ag<-aggregates[[dv]]
     dv<-ag$all_vars
@@ -348,11 +477,8 @@ do_cell<-function(cellsdf, stats_dispatchers, report_dispatchers=list(), report_
   propname<-paste0(getOption('relationshipMatrix.property_indepvar_prefix'),
                    getOption('relationshipMatrix.is_aggregate'))
   if(cellsdf[[propname]][[cellnr]]) {
-    if(! db %in% names(aggregates)) {
-      stop(paste0("Errors when processing cellsdf, row ", cellnr, ". Cannot find aggregate for aggregate independent variable ", propname))
-    }
     if(!iv %in% names(aggregates)) {
-      stop(paste0("Cannot find the aggregate in the aggregates argument"))
+      stop(paste0("Errors when processing cellsdf, row ", cellnr, ". Cannot find aggregate independent variable", iv, "." ))
     }
     ag<-aggregates[[iv]]
     iv<-ag$all_vars

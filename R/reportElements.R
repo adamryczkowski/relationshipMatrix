@@ -45,7 +45,19 @@
 #9. Statistical_Methods_Catcher.
 #   Function that implements exactly the same interface as the Statistical_Methods, but instead of
 
+dynamic_cast<-function(R6Object, class_name) {
+  while(!'class_name' %in% class(R6Object)) {
+    if(!'super' %in% names(R6Object$.__enclos_env__)) {
+      R6Object<-NULL
+      break
+    }
+    R6Object<-R6Object$.__enclos_env__$super
+  }
+  return(R6Object)
+}
 
+
+#This is a root of all report elements
 doc_reportElement<-R6::R6Class(
   "doc_reportElement",
   public = list(
@@ -88,7 +100,14 @@ doc_reportElement<-R6::R6Class(
   ),
   active = list(
     stat_methods = function() {private$stat_methods_},
-    parent = function() {private$parent_}
+    parent = function() {private$parent_},
+    discard_changes=function(value) {#If true it will discard any changes (feature used in the discovery mode)
+      if(missing(value)) {
+        private$parent_$discard_changes
+      } else {
+        private$parent_$discard_changes<-newValue
+      }
+    }
   ),
   #Can be accessed with object$.__enclos_env__$private
   private = list(
@@ -117,6 +136,11 @@ doc_container<-R6::R6Class(
         obj$render(doc)
       }
     },
+    pre_render=function() {
+      for(obj in private$children_) {
+        obj$pre_render()
+      }
+    },
     address_string=function() {
       if(!is.null(private$parent_)) {
         return(private$parent_$address_string())
@@ -142,12 +166,41 @@ doc_container<-R6::R6Class(
         private$get_folder_direct(folder_type)
       }
     },
-    add_element=function(obj){
+    add_element=function(obj){ #Ignoring insetion when we are in the discard state
       checkmate::assertClass(obj, 'doc_reportElement')
-      checkmate::assertTRUE(identical(obj$parent, self))
-      private$children_[[length(private$children_)+1]]<-obj
+      if(!self$discard_changes) {
+        if(!identical(obj$parent, self)) {
+          obj$.__enclos_env__$private$parent_<-self
+        }
+        checkmate::assertTRUE(identical(obj$parent, self))
+        private$children_[[length(private$children_)+1]]<-obj
+      }
+    },
+    get_child_chapter_by_name=function(chapter_name) {
+      for(ch in private$children_) {
+#        ch<-dynamic_cast(R6Object = ch, class_name = 'doc_section')
+        if(!is.null(ch)){
+          if(ch$title == chapter_name) {
+            return(ch)
+          }
+        }
+      }
+      return(NULL)
     }
   ),
+  active = list(
+    discard_changes=function(value) {#If true it will discard any changes (feature used in the discovery mode)
+      if(is.null(private$parent_)) {
+        browser()
+      }
+      if(missing(value)) {
+        private$parent_$discard_changes
+      } else {
+        private$parent_$discard_changes<-newValue
+      }
+    }
+  ),
+
   private = list(
     get_folder_direct=function(folder_type) {
       if(folder_type=='chart') {
@@ -175,6 +228,7 @@ doc_container<-R6::R6Class(
   )
 )
 
+#This object only provides user-visible interface for adding tables, charts, paragraphs and sections
 doc_Insertable<-R6::R6Class(
   "doc_Insertable",
   inherit = doc_container,
@@ -197,19 +251,35 @@ doc_Insertable<-R6::R6Class(
       self$add_element(sec)
       return(sec)
     },
-    insert_table=function(caption, table_df, tags=character(0)) {
-      tbl<-doc_table$new(parent=self, tags=tags, table_caption=caption, table_df=table_df)
+    insert_table=function(caption, table_df, tags=character(0), flag_header_in_md=FALSE,
+                          emph_rows=NULL, emph_cols=NULL,
+                          strong_rows=NULL, strong_cols=NULL) {
+      if(flag_header_in_md) {
+        #browser()
+#        table_df<-data.table(table_df)
+        for (i in seq_along(table_df)) {
+          attr(table_df[[i]], 'label')<-colnames(table_df)[[i]]
+        }
+      }
+      #browser()
+      tbl<-doc_table$new(parent=self, tags=tags, table_caption=caption, table_df=table_df,
+                         emph_rows=emph_rows, emph_cols=emph_cols,
+                         strong_rows=strong_rows, strong_cols=strong_cols)
       self$add_element(tbl)
       return(tbl$label)
     },
-    insert_chart=function(caption, gg, tags=character(0)) {
-      cht<-doc_chart$new(parent=self, tags=tags, chart_caption=caption, gg=gg)
+    insert_chart=function(caption, gg, chart_prefix, tags=character(0)) {
+      cht<-doc_chart$new(parent=self, tags=tags, chart_caption=caption, gg=gg, chart_prefix = chart_prefix)
       self$add_element(cht)
       return(cht$label)
+    },
+    insert_reference_chapter=function(title, id) {
+      browser() #TODO
     }
   )
 )
 
+# This is a renderable section. It makes sense only on the main, renderable document
 doc_section<-R6::R6Class(
   "doc_section",
   inherit = doc_Insertable,
@@ -230,7 +300,7 @@ doc_section<-R6::R6Class(
 #        text<-''
 #      }
 
-      text<-pander::pandoc.header.return(paste0(text, private$text_), level = self$depth())
+      text<-pander::pandoc.header.return(private$text_, level = self$depth())
       if(is.na(private$number_)) {
         text<-paste0(text, "{.unnumbered}")
       }
@@ -246,13 +316,16 @@ doc_section<-R6::R6Class(
       doc$add.paragraph(text)
     }
   ),
+  active = list(
+    title = function() {private$text_}
+  ),
   private = list(
     text_='',
     number_=NA_real_
   )
 )
 
-
+# Simple paragraph text
 doc_paragraph<-R6::R6Class(
   "doc_paragraph",
   inherit = doc_reportElement,
@@ -272,8 +345,7 @@ doc_paragraph<-R6::R6Class(
   )
 )
 
-#Main document. It is basically container that stores
-#header info.
+#Main document. It is basically container that stores header info.
 doc_Document<-R6::R6Class(
   "doc_Document",
   inherit = doc_Insertable,
@@ -298,18 +370,41 @@ doc_Document<-R6::R6Class(
     },
     get_folders=function(folder_type) { #Returns special folder path
       if(folder_type=='chart') {
-        return(private$chart_foldername_)
+        folder<-private$chart_foldername_
       } else if(folder_type=='cache') {
-        return(private$cache_foldername_)
+        folder<-private$chart_foldername_
       } else {
         browser() #Unknown folder_type
       }
+      return(pathcat::path.cat(getwd(), private$cache_foldername_))
+    },
+    get_chapter_by_path=function(path_list) {
+#      browser()
+      ch<-self
+      for(path_elem in path_list) {
+        ch <- ch$get_child_chapter_by_name(path_elem)
+        if(is.null(ch)) {
+          browser() #Chapter not found
+          break
+        }
+
+      }
+      return(ch)
     }
 
   ),
   active = list(
     stat_methods = function() {private$stat_methods_},
-    parent = function() {private$parent_}
+    parent = function() {private$parent_},
+    discard_changes=function(value) {#If true it will discard any changes (feature used in the discovery mode)
+      if(missing(value)) {
+        FALSE
+      } else {
+        if(value!=FALSE) {
+          browser()
+        }
+      }
+    }
   ),
   #Can be accessed with object$.__enclos_env__$private
   private = list(
@@ -345,7 +440,26 @@ doc_Standalone_Chapter<-R6::R6Class(
       } else {
         super$render(doc)
       }
+    },
+    #Inserts our contents into the target chapter
+    insert_into=function(target_chapter) {
+      for(ch in private$children_) {
+        target_chapter$add_element(ch)
+      }
+
     }
+  ),
+  active = list(
+    discard_changes=function(value) {#If true it will discard any changes (feature used in the discovery mode)
+      if(missing(value)) {
+        private$discard_changes_
+      } else {
+        private$discard_changes_<-value
+      }
+    }
+  ),
+  private = list(
+    discard_changes_=FALSE
   )
 )
 

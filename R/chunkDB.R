@@ -20,12 +20,27 @@ ChunkDB<-R6::R6Class(
         get_labels_var(var=private$depvar_, dt=private$chunkdf_, flag_md=flag_md, private$metaserver_, prefix = prefix)
       },
       groupvar_label = function(flag_md=FALSE) {
-        prefix<-getOption('relationshipMatrix.property_groupvar_prefix')
-        get_labels_var(var=private$depvar_, dt=private$chunkdf_, flag_md=flag_md, private$metaserver_, prefix = prefix)
+        if(self$is_grouped()) {
+          prefix<-getOption('relationshipMatrix.property_groupvar_prefix')
+          get_labels_var(var=private$depvar_, dt=private$chunkdf_, flag_md=flag_md, private$metaserver_, prefix = prefix)
+        } else {
+          NA_character_
+        }
       },
       df_label = function(flag_md=FALSE) {
 
         browser() #TODO - należy dodać nazwę bazy danych, uwzględniającą filtr
+      },
+      dvlevels = function(flag_recalculate=FALSE, flag_include_NA=FALSE) {
+        checkmate::assertFALSE(self$is_depvar_aggregate())
+        danesurowe::GetLevels(private$chunkdf_[[private$depvar_]], flag_recalculate = flag_recalculate, flag_include_NA = flag_include_NA)
+      },
+      ivlevels = function(flag_recalculate=FALSE, flag_include_NA=FALSE) {
+        checkmate::assertFALSE(self$is_indepvar_aggregate())
+        danesurowe::GetLevels(private$chunkdf_[[private$indepvar_]], flag_recalculate = flag_recalculate, flag_include_NA = flag_include_NA)
+      },
+      gvlevels = function(flag_recalculate=FALSE, flag_include_NA=FALSE) {
+        danesurowe::GetLevels(private$chunkdf_[[private$groupvar_]], flag_recalculate = flag_recalculate, flag_include_NA = flag_include_NA)
       },
       is_depvar_aggregate=function() {'AggregateType' %in% class(private$depvar_)},
       is_indepvar_aggregate=function() {'AggregateType' %in% class(private$indepvar_)},
@@ -36,9 +51,16 @@ ChunkDB<-R6::R6Class(
                          groupvar=private$groupvar_,
                          filtr=private$filtr_,
                          flag_never_serve_df = private$flag_never_serve_df_)
+        out$.__enclos_env__$private$metaserver_<-private$metaserver_
         return(out)
       },
-      is_grouped = function() {!is.na(private$groupvar_)},
+      is_grouped = function() {
+        if(!is.na(private$groupvar_)) {
+          private$groupvar_!=''
+        } else {
+          FALSE
+        }
+      },
       chunkdf_ivdvgv = function() {
         if(private$flag_never_serve_df_) {
           private$metaserver_$done_discovery()
@@ -68,6 +90,7 @@ ChunkDB<-R6::R6Class(
   active = list(
     chunkdf = function() {
       if(private$flag_never_serve_df_) {
+        private$metaserver_$done_discovery()
         stop("Done discovery mode") #We trigger the error so we can grab the object
       }
       private$chunkdf_
@@ -83,25 +106,24 @@ ChunkDB<-R6::R6Class(
     indepvar_name = function() {private$indepvar_},
     groupvar_name = function() {private$groupvar_},
     depvar = function() {
-      if(private$flag_never_serve_df_) {
-        stop("Done discovery mode") #We trigger the error so we can grab the object
-      }
+#      browser()
       if('character' %in% class(private$depvar_)) {
+        private$metaserver_$done_discovery()
         return(private$chunkdf_[[private$depvar_]])
       } else if ('AggregateType' %in% class(private$depvar_)) {
-        browser() #TODO
+        private$depvar_$.__enclos_env__$private$db_<-self
+        return(private$depvar_)
       } else {
         browser()
       }
     },
     indepvar = function() {
-      if(private$flag_never_serve_df_) {
-        stop("Done discovery mode") #We trigger the error so we can grab the object
-      }
       if('character' %in% class(private$indepvar_)) {
+        private$metaserver_$done_discovery()
         return(private$chunkdf_[[private$indepvar_]])
       } else if ('AggregateType' %in% class(private$indepvar_)) {
-        browser() #TODO
+        private$indepvar_$.__enclos_env__$private$db_<-self
+        return(private$indepvar_)
       } else {
         browser()
       }
@@ -121,7 +143,6 @@ ChunkDB<-R6::R6Class(
 
 #' Gets variable label
 get_labels_var<-function(var, dt, flag_md=FALSE, pAcc=NULL, prefix='.') {
-
   if(is.null(pAcc)) {
     if('AggregateType' %in% class(var)) {
 

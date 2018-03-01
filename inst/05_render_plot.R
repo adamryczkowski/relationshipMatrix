@@ -8,14 +8,14 @@ if(!dir.exists(dirname(plot_image_tmpfilename))) {
 }
 
 if(!is.null(gg)){
-  ggsave(plot=gg,filename=plot_image_tmpfilename, height=15, width=18.5, dpi = 450, units='cm', device = 'png')
+  suppressWarnings(ggsave(plot=gg,filename=plot_image_tmpfilename, height=15, width=18.5, dpi = 450, units='cm', device = 'png'))
 }
-if(!does_chart_tmp_exist(plot_image_tmpfilename)) {
+if(!file.exists(plot_image_tmpfilename)) {
   browser()
 }
-system(paste0('bash "', preprocess_script_path(), '" "',
+system(paste0('bash "', preprocess_script_path, '" "',
               plot_image_tmpfilename, '" "',
               plot_image_filename, '" "',
               plot_archive, '"'),
-       ignore.stdout = TRUE, ignore.stderr = TRUE, wait = wait)
+       ignore.stdout = TRUE, ignore.stderr = TRUE, wait = TRUE)
 

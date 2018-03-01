@@ -23,7 +23,9 @@ NULL
     relationshipMatrix.property_groupvar_prefix = 'gv.',
     relationshipMatrix.is_aggregate = 'is_aggregate',
     relationshipMatrix.reversed_vars = 'reversed_vars',
-    relationshipMatrix.prefix = 'prefix'
+    relationshipMatrix.prefix = 'prefix',
+    relationshipMatrix.property_cell_title = 'cell_title',
+    relationshipMatrix.property_i18n_language = 'language'
   )
   toset	<-	!(names(op.relationshipMatrix)	%in%	names(op))
   if(any(toset))	options(op.relationshipMatrix[toset])

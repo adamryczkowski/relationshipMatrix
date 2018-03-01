@@ -20,14 +20,15 @@ get_chunkdf<-function(df, indepvar, depvar, groupvar, filter) {
   ###### Generate the chunk of df
 
   #1. From depvar and indepvar
+  #browser()
   variables<-character(0)
-  if('AggregateType%' %in% class(indepvar)) {
+  if('AggregateType' %in% class(indepvar)) {
     variables<-c(variables, indepvar$all_vars)
   } else {
     variables<-c(variables, indepvar)
   }
-  if('AggregateType%' %in% class(depvar)) {
-    variables<-c(variables, indepvar$all_vars)
+  if('AggregateType' %in% class(depvar)) {
+    variables<-c(variables, depvar$all_vars)
   } else {
     variables<-c(variables, depvar)
   }
@@ -48,29 +49,38 @@ get_chunkdf<-function(df, indepvar, depvar, groupvar, filter) {
   return(chunkdf)
 }
 
+merge_properties<-function(all_properties, properties) {
+  extra_names<-which(! names(properties) %in% names(all_properties))
+  extra_names<-names(properties)[extra_names[stringr::str_detect(names(properties)[extra_names], pattern = stringr::regex('^[^\\.]'))]]
+  return(c(all_properties, properties[extra_names]))
+}
+
 #all_properites contain all properties. That's why we need to do a discovery run for each user-supplied function beforehand
 do_cell<-function(df, indepvar, depvar, groupvar, filter, all_properties,  stats_dispatcher, report_dispatcher, report_functions, chapter) {
-#  browser()
+  #  browser()
+  language_prop<-getOption('relationshipMatrix.property_i18n_language')
   #1. Grabs the chunk db
   chunkdf<-get_chunkdf(df=df, indepvar=indepvar, depvar=depvar, filter=filter, groupvar=groupvar)
   dbobj<-relationshipMatrix::ChunkDB$new(chunkdf = df, depvar = dv, indepvar = iv,
                                          groupvar = gv, filtr = filter$filterstring, flag_never_serve_df = TRUE)
 
 
-
+  #browser()
   #2. Run statistics function
 
   #a) Generate the propertyAccessor. It will enter the mode 1 to do discovery
   pAcc<-propertyAccessor$new(db=dbobj, properties = all_properties)
 
   #b) Getting the parameters from the discovery mode.
+  #browser()
   discover_parameters(pa=pAcc, user_function=stats_dispatcher)
 
   #Uses chunkdf and propertyAccessor_cannonized
   #Outputs statistics and propertyAccessor
 
   #c) Run the function
-  properties<-pAcc$.__enclos_env__$private$get_discovered_properties_list()
+  properties<-pAcc$.__enclos_env__$private$get_discovered_properties_list(flag_include_dbreversal=FALSE)
+  all_properties<-merge_properties(all_properties, properties)
   source(system.file('02_stats_dispatch.R', package = 'relationshipMatrix'), local = TRUE)
 
 
@@ -84,8 +94,13 @@ do_cell<-function(df, indepvar, depvar, groupvar, filter, all_properties,  stats
     }
   }
 
+  dbreversed<-pAcc$is_reversed()
+
   #a) Generate again the propertyAccessor. It will enter the mode 1 to do discovery
   pAcc<-propertyAccessor$new(db=dbobj, properties = all_properties)
+  if(dbreversed) {
+    pAcc$reverse_vars()
+  }
 
   #b) Getting the parameters from the discovery mode.
   discover_parameters(pa=pAcc, user_function=report_dispatcher, user_arguments=list(statistics=statistics))
@@ -93,11 +108,13 @@ do_cell<-function(df, indepvar, depvar, groupvar, filter, all_properties,  stats
 
   #c) Run the function
   properties<-pAcc$.__enclos_env__$private$get_discovered_properties_list()
+  all_properties<-merge_properties(all_properties, properties)
   source(system.file('03_report_dispatch.R', package = 'relationshipMatrix'), local = TRUE)
 
+  dbreversed<-pAcc$is_reversed()
+  #browser()
 
 
-  reports<-list()
   for(i in seq_along(report_functions)) {
     fun<-report_functions[[i]]
     if('character' %in% class(fun)) {
@@ -109,15 +126,23 @@ do_cell<-function(df, indepvar, depvar, groupvar, filter, all_properties,  stats
     }
     #a) Generate the propertyAccessor. It will enter the mode 1 to do discovery
     pAcc<-propertyAccessor$new(db=dbobj, properties = all_properties)
-#    browser()
+    if(dbreversed) {
+      pAcc$reverse_vars()
+    }
 
+    #    browser()
+    language<-pAcc$get_property(language_prop) #Getting the language is important
+    if(language=='PL') {
+      options(OutDec= ",")
+    } else {
+      options(OutDec= ".")
+    }
     #b) Getting the parameters from the discovery mode.
     discover_parameters(pa=pAcc, user_function=fun, user_arguments=list(statistics=statistics, chapter=chapter))
     properties<-pAcc$.__enclos_env__$private$get_discovered_properties_list()
     source(system.file('04_report_gen.R', package = 'relationshipMatrix'), local = TRUE)
-    reports[[i]]<-report
   }
-  return(reports)
+  return(chapter)
 }
 
 #Function executes a given user function in the discovery mode. Generates a special tailored propertyAccessor as the output.
@@ -129,14 +154,24 @@ discover_parameters<-function(pa, user_function, user_arguments=list()) {
   checkmate::assert_class(user_arguments, classes = 'list')
 
 
+  if('chapter' %in% names(user_arguments)) {
+    chapter<-user_arguments$chapter
+    chapter$discard_changes<-TRUE
+  }
 
   #Execute the dispatcher in the discovery mode, to get the list of all relevant properties
   ans<-tryCatch(
     do.call(user_function, args=c(pa, user_arguments)),
     error = function(e) e
   )
+  if('chapter' %in% names(user_arguments)) {
+    chapter$discard_changes<-FALSE
+  }
+
   if(! 'error' %in% class(ans)) {
-    stop(paste0("Dispatcher did not call done_discovery() function."))
+    pa$.__enclos_env__$private$mode_<-2
+    warning(paste0("Dispatcher did not call done_discovery() function."))
+    return(pa)
   }
 
   if(ans$message!='Done discovery mode') {

@@ -8,17 +8,17 @@
 #Returns: chunkdf
 
 get_chunkdf<-function(variables, filterstring=NULL, df) {
-#  browser()
-  if(!is.null(filterstring)) {
-#    if('character' %in% class(filterstring)) {
-#      filterstring<-parse(text = filterstring)
-#    }
+  #browser()
+  if(!is.null(filterstring) && filterstring!='') {
+    #    if('character' %in% class(filterstring)) {
+    #      filterstring<-parse(text = filterstring)
+    #    }
     chunkdf<-dplyr::filter_(df, filterstring)
-#    chunkdf<-dplyr::filter(df, !! filterstring)
+    #    chunkdf<-dplyr::filter(df, !! filterstring)
   } else {
     chunkdf<-df
   }
-  return(chunkdf[variables])
+  return(as_tibble(chunkdf)[variables])
 }
 
 chunkdf<-get_chunkdf(variables, filterstring, df)

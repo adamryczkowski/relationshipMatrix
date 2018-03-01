@@ -40,12 +40,16 @@ propertyAccessor<-R6::R6Class("propertyAccessor",
     is_reversed=function() {
       private$reverse_vars_
     },
-    get_property=function(property_name, validator=identity) {
+    get_property=function(property_name, validator=identity, default_value=NA) {
       if(private$mode_==1) {
         private$property_validators_[[property_name]]<-validator
         if(!property_name %in% names(private$all_properties_)) {
-          warning(paste0("There is no property '", property_name, "'. Will use return NA."))
-          private$all_properties_[[property_name]]<-NA
+          if(!is.na(default_value)) {
+            private$all_properties_[[property_name]]<-default_value
+          } else {
+            warning(paste0("There is no property '", property_name, "'. Will use return NA."))
+            private$all_properties_[[property_name]]<-NA
+          }
         }
         return(private$all_properties_[[property_name]])
       } else {
@@ -130,7 +134,7 @@ propertyAccessor<-R6::R6Class("propertyAccessor",
     report_dispatcher_=NULL,
     #Returns all information specified by the user during the discovery phase. Needed after the discovery,
     #to get list that will get pushed to the depwalker to build propertyAccessor in mode 3
-    get_discovered_properties_list=function() {
+    get_discovered_properties_list=function(flag_include_dbreversal=TRUE) {
       if(private$mode_!=2) {
         browser()
       }
@@ -152,11 +156,22 @@ propertyAccessor<-R6::R6Class("propertyAccessor",
           record[[prop]]<-value
         }
       }
-
-      record<-c(record, list(.reversed=private$reverse_vars_, .report_dispatcher=private$report_dispatcher_))
+      if(flag_include_dbreversal) {
+        record<-c(record, list(.reversed=private$reverse_vars_, .report_dispatcher=private$report_dispatcher_))
+      } else {
+        record<-c(record, list(.reversed=FALSE, .report_dispatcher=private$report_dispatcher_))
+      }
       cnames<-order(names(record))
       props<-record[cnames]
       return(record)
     }
   )
 )
+
+validate_bool<-function(value) {
+  as.boolean(value)
+}
+
+validate_int<-function(value) {
+  as.integer(value)
+}

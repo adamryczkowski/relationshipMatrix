@@ -137,10 +137,17 @@ read_sheet<-function(sheet, sheetname, dt_structure, aggregate_types=list())
     }
   }
 
-  all_names<-reduce(dict, function(x1,x2) unique(c(x1,names(x2))), .init=names(dict[[1]]))
+  #all_names<-reduce(dict, function(x1,x2) unique(c(x1,names(x2))), .init=names(dict[[1]]))
+
+
 
 #  browser()
   tododf<-objectstorage::lists_to_df(dict, list_columns = c('prefix', 'prefix1', 'prefix2', 'prefix3'))
+
+  tododf[tododf$indepvar=='NULL','indepvar']<-''
+  tododf[tododf$depvar=='NULL','depvar']<-''
+  tododf[tododf$groupvar=='NULL','groupvar']<-''
+  tododf[tododf$filter=='NULL','filter']<-''
 
   dt_structure_clone<-data.table::copy(dt_structure)
   depvar_prefix<-getOption('relationshipMatrix.property_depvar_prefix')

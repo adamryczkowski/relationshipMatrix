@@ -3,18 +3,35 @@ doc_table<-R6::R6Class(
   "doc_table",
   inherit = doc_reportElement,
   public = list(
-    initialize=function(parent, tags, table_caption, table_df) {
+    initialize=function(parent, tags, table_caption, table_df,
+                        emph_rows=NULL, emph_cols=NULL,
+                        strong_rows=NULL, strong_cols=NULL) {
       checkmate::assertString(table_caption)
-      checkmate::assertClass(table_df, 'data.frame')
+      checkmate::assertTRUE(any(c('data.frame', 'character') %in% class(table_df)) )
+#      checkmate::assertClass(table_df, 'data.frame')
       super$initialize(parent=parent, tags=tags)
       private$table_caption_<-table_caption
+      #browser()
+      private$emph_rows_<-emph_rows
+      private$emph_cols_<-emph_cols
+      private$strong_rows_<-strong_rows
+      private$strong_cols_<-strong_cols
+
       private$table_df_<-table_df
       parent_hash<-parent$address_string()
       private$tab_label_ <- generate_table_hash(parent_hash = parent_hash, label = table_caption)
     },
     render=function(doc) {
-      msg<-add_simple_table(tab = private$table_df_, caption = private$table_caption_, tab_label = private$tab_label_)
-      doc$add.paragraph(msg)
+      #browser()
+      if('data.frame' %in% class(private$table_df_)) {
+        msg<-add_simple_table(tab = private$table_df_, caption = private$table_caption_, tab_label = private$tab_label_,
+                              emph_rows=private$emph_rows_, emph_cols=private$emph_cols_,
+                              strong_rows=private$strong_rows_, strong_cols=private$strong_cols_)
+      } else {
+        msg<-private$table_df_
+      }
+
+      doc$add.paragraph(paste0('\n\n', msg, '\n\n'))
     }
   ),
   active = list(
@@ -24,13 +41,17 @@ doc_table<-R6::R6Class(
   private = list(
     table_caption_='',
     table_df_=NULL,
-    tab_label_=''
+    tab_label_='',
+    emph_rows_=NULL,
+    emph_cols_=NULL,
+    strong_rows_=NULL,
+    strong_cols_=NULL
   )
 )
 
 
-generate_table_hash<-function(prefix='', parent_hash, label) {
-  ans<-list(parent_hash=parent_hash, label=label)
+generate_table_hash<-function(prefix='', parent_hash, label, file_prefix='') {
+  ans<-list(parent_hash=parent_hash, label=label, file_prefix=file_prefix)
 
   return(paste0(prefix, gen_nice_serial(ans, 8)))
 }
@@ -45,7 +66,10 @@ gen_nice_serial<-function(args, str_length=6) {
 }
 
 
-add_simple_table<-function(tab, caption, tab_label='',  quote_varname='`', flag_first_row_has_headers=FALSE) {
+add_simple_table<-function(tab, caption, tab_label='',  quote_varname='`', flag_first_row_has_headers=FALSE,
+                           emph_rows=NULL, emph_cols=NULL,
+                           strong_rows=NULL, strong_cols=NULL) {
+  #browser()
   if(! 'data.frame' %in% class(tab)) {
     browser()
   }
@@ -77,21 +101,29 @@ add_simple_table<-function(tab, caption, tab_label='',  quote_varname='`', flag_
 
   if(missing(caption)){
     e<-tryCatch(
-      ret <- pander::pandoc.table.return(tab, missing='', big.mark='\uA0', split.tables = 1000000),
+      ret <- pander::pandoc.table.return(tab, missing='', big.mark='\uA0', split.tables = 1000000, use.hyphening = TRUE,
+                                         emphasize.italics.rows=emph_rows, emphasize.italics.cols=emph_cols,
+                                         emphasize.strong.rows=strong_rows, emphasize.strong.cols=strong_cols),
       error=function(e) e
     )
     if ('error' %in% class(e)) {
-      ret <- pander::pandoc.table.return(tab, missing='', big.mark='\uA0', split.tables = 1000000, use.hyphening = FALSE)
+      ret <- pander::pandoc.table.return(tab, missing='', big.mark='\uA0', split.tables = 1000000, use.hyphening = FALSE,
+                                         emphasize.italics.rows=emph_rows, emphasize.italics.cols=emph_cols,
+                                         emphasize.strong.rows=strong_rows, emphasize.strong.cols=strong_cols)
     }
   } else {
     e<-tryCatch(
       ret <- pander::pandoc.table.return(tab, caption=caption, missing='',
-                                         big.mark='\uA0', split.tables = 1000000),
+                                         big.mark='\uA0', split.tables = 1000000, use.hyphening = TRUE,
+                                         emphasize.italics.rows=emph_rows, emphasize.italics.cols=emph_cols,
+                                         emphasize.strong.rows=strong_rows, emphasize.strong.cols=strong_cols),
       error=function(e) e
     )
     if ('error' %in% class(e)) {
       ret <- pander::pandoc.table.return(tab, caption=caption, missing='',
-                                         big.mark='\uA0', split.tables = 1000000, use.hyphening = FALSE)
+                                         big.mark='\uA0', split.tables = 1000000, use.hyphening = FALSE,
+                                         emphasize.italics.rows=emph_rows, emphasize.italics.cols=emph_cols,
+                                         emphasize.strong.rows=strong_rows, emphasize.strong.cols=strong_cols)
     }
   }
   return(ret)
