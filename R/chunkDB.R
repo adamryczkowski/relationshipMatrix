@@ -70,7 +70,11 @@ ChunkDB<-R6::R6Class(
           stop("Cannot cat ivdvgv format if either of variables is aggregate")
         }
         df<-data.table::copy(private$chunkdf_)
-        data.table::setnames(x = df, old = c(private$depvar_, private$indepvar_, private$groupvar_), new = c('dv', 'iv', 'gv') )
+        if(self$is_grouped()) {
+          data.table::setnames(x = df, old = c(private$depvar_, private$indepvar_, private$groupvar_), new = c('dv', 'iv', 'gv') )
+        } else {
+          data.table::setnames(x = df, old = c(private$depvar_, private$indepvar_), new = c('dv', 'iv') )
+        }
         df
       },
       filter_label = function(flag_md=FALSE) {

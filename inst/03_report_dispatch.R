@@ -28,3 +28,4 @@ dbobj<-relationshipMatrix::ChunkDB$new(chunkdf = chunkdf, depvar = depvar, indep
                                        groupvar = groupvar, filtr = filter)
 pAcc=propertyAccessor$new(properties=properties, db=dbobj, mode=3)
 report_functions<-report_dispatcher(pAcc, statistics)
+learned_properties<-pAcc$.__enclos_env__$private$get_learned_properties_list()

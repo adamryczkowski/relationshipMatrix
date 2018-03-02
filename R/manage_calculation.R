@@ -207,6 +207,7 @@ render_matrix<-function(cellsdf, author='Adam Ryczkowski', format='docx', title=
 
 
 enhance_tododf<-function(tododf, filters) {
+  #browser()
   dv_prefix<-getOption('relationshipMatrix.property_depvar_prefix')
   iv_prefix<-getOption('relationshipMatrix.property_indepvar_prefix')
   gv_prefix<-getOption('relationshipMatrix.property_groupvar_prefix')

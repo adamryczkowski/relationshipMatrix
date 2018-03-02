@@ -110,6 +110,12 @@ do_cell<-function(df, indepvar, depvar, groupvar, filter, all_properties,  stats
   properties<-pAcc$.__enclos_env__$private$get_discovered_properties_list()
   all_properties<-merge_properties(all_properties, properties)
   source(system.file('03_report_dispatch.R', package = 'relationshipMatrix'), local = TRUE)
+  if(length(learned_properties)>0) {
+    for(i in seq_along(learned_properties)) {
+      lname<-names(learned_properties)[[i]]
+      all_properties[[lname]]<-learned_properties[[i]]
+    }
+  }
 
   dbreversed<-pAcc$is_reversed()
   #browser()
@@ -128,6 +134,12 @@ do_cell<-function(df, indepvar, depvar, groupvar, filter, all_properties,  stats
     pAcc<-propertyAccessor$new(db=dbobj, properties = all_properties)
     if(dbreversed) {
       pAcc$reverse_vars()
+    }
+    if(length(learned_properties)>0) {
+      for(i in seq_along(learned_properties)) {
+        lname<-names(learned_properties)[[i]]
+        all_properties[[lname]]<-learned_properties[[i]]
+      }
     }
 
     #    browser()

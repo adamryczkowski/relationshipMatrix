@@ -41,6 +41,8 @@ propertyAccessor<-R6::R6Class("propertyAccessor",
       private$reverse_vars_
     },
     get_property=function(property_name, validator=identity, default_value=NA) {
+      checkmate::assertString(property_name)
+      checkmate::assertFunction(validator)
       if(private$mode_==1) {
         private$property_validators_[[property_name]]<-validator
         if(!property_name %in% names(private$all_properties_)) {
@@ -87,6 +89,7 @@ propertyAccessor<-R6::R6Class("propertyAccessor",
       }
     },
     put_property=function(property_name, value) {
+      checkmate::assertString(property_name)
       if(private$mode_ %in% c(1,3) ) {
         private$all_properties_[[property_name]]<-value
         private$property_validators_[[property_name]]<-NA
@@ -163,6 +166,17 @@ propertyAccessor<-R6::R6Class("propertyAccessor",
       }
       cnames<-order(names(record))
       props<-record[cnames]
+      return(record)
+    },
+    get_learned_properties_list=function(flag_include_dbreversal=TRUE) {
+      if(!private$mode_%in%c(3,4)) {
+        browser()
+      }
+      learned_pos<-map_lgl(private$property_validators_, is.na)
+      learned_names<-names(private$property_validators_)[learned_pos]
+      learned_names<-learned_names[learned_names!='']
+      #Insert all accessed properties
+      record<-private$all_properties_[learned_names]
       return(record)
     }
   )

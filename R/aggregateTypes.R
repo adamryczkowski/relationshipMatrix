@@ -86,7 +86,11 @@ AggregateType<-R6::R6Class(
     all_vars = function() {c(private$index_var_, private$vars_)},
     theoretical_min = function() {as.numeric(private$theoretical_min_)},
     theoretical_max = function() {as.numeric(private$theoretical_max_)},
-    unit = function() {private$unit_}
+    unit = function() {if(is.na(private$unit_)) {
+      ''
+    } else {
+      private$unit_
+    }}
   ),
 
   #Can be accessed with object$.__enclos_env__$private
