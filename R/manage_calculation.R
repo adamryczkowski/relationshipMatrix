@@ -234,6 +234,7 @@ enhance_tododf<-function(tododf, filters) {
                                                      name = names(filters)[[.]]))
   filters_df<-objectstorage::lists_to_df(filters_list)
   colnames(filters_df)<-paste0(filter_prefix, colnames(filters_df))
+  tododf<-as_tibble(tododf)
   tododf<-dplyr::left_join(x=tododf,y=filters_df, by=c('filter'=paste0(filter_prefix, 'name')), suffix=c('', filter_prefix))
 
   #Add cell title (if missing)
