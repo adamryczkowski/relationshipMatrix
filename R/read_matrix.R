@@ -148,6 +148,7 @@ read_sheet<-function(sheet, sheetname, dt_structure, aggregate_types=list())
   tododf[tododf$depvar=='NULL','depvar']<-''
   tododf[tododf$groupvar=='NULL','groupvar']<-''
   tododf[tododf$filter=='NULL','filter']<-''
+  tododf<-tibble::as_tibble(tododf)
 
   dt_structure_clone<-data.table::copy(dt_structure)
   depvar_prefix<-getOption('relationshipMatrix.property_depvar_prefix')
