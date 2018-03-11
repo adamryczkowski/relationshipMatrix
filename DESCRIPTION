@@ -9,15 +9,17 @@ Description: More about what it does (maybe more than one line)
 License: What license is it under?
 Encoding: UTF-8
 LazyData: true
-Imports: xlsx,
+Imports: 
+  data.table
+Depends: 
+  purrr,
+  tibble,
+  dplyr,
+  xlsx,
   stringr,
   yaml,
   utils,
   R6
-Depends: data.table,
-  purrr,
-  tibble,
-  dplyr
 Remotes:
 	 adamryczkowski/danesurowe,
 	 adamryczkowski/depwalker
