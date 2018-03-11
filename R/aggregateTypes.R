@@ -112,18 +112,18 @@ AggregateType<-R6::R6Class(
 
 make_aggregateTypesDF<-function(aggregate_types) {
   if(length(aggregate_types)==0) {
-    return(tibble(colname=character(0), label=character(0), class=character(0), vartype=character(0),
+    return(tibble::tibble(colname=character(0), label=character(0), class=character(0), vartype=character(0),
                   theoretical_min_numeric=numeric(0), theoretical_max_numeric=numeric(0),
                   force_integers=logical(0), unit=character(0)))
   }
-  df<-tibble(colname=names(aggregate_types))
-  df$label<-map_chr(aggregate_types, ~.$label)
+  df<-tibble::tibble(colname=names(aggregate_types))
+  df$label<-purrr::map_chr(aggregate_types, ~.$label)
   df$class<-'numeric'
   df$vartype<-'N'
-  df$theoretical_min_numeric<-map_dbl(aggregate_types, ~as.numeric(.$theoretical_min))
-  df$theoretical_max_numeric<-map_dbl(aggregate_types, ~as.numeric(.$theoretical_max))
+  df$theoretical_min_numeric<-purrr::map_dbl(aggregate_types, ~as.numeric(.$theoretical_min))
+  df$theoretical_max_numeric<-purrr::map_dbl(aggregate_types, ~as.numeric(.$theoretical_max))
   df$force_integers<-FALSE
-  df$units<-map_chr(aggregate_types, ~.$unit)
+  df$units<-purrr::map_chr(aggregate_types, ~.$unit)
   return(df)
 }
 

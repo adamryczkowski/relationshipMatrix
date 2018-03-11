@@ -172,7 +172,7 @@ propertyAccessor<-R6::R6Class("propertyAccessor",
       if(!private$mode_%in%c(3,4)) {
         browser()
       }
-      learned_pos<-map_lgl(private$property_validators_, is.na)
+      learned_pos<-purrr::map_lgl(private$property_validators_, is.na)
       learned_names<-names(private$property_validators_)[learned_pos]
       learned_names<-learned_names[learned_names!='']
       #Insert all accessed properties

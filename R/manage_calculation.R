@@ -147,12 +147,12 @@ render_matrix<-function(cellsdf, author='Adam Ryczkowski', format='docx', title=
   doc<-doc_Document$new(chart_foldername = chart_foldername, cache_foldername = cache_foldername,
                         author = author, format = format, title = title)
   insert_chapters<-function(container, env_chapters, tags=character(0)) {
-    df<-tibble(priorities=as.numeric(map_chr(as.list(env_chapters), 'priority')),
+    df<-tibble(priorities=as.numeric(purrr::map_chr(as.list(env_chapters), 'priority')),
                names=names(env_chapters))
     df_ref<-df %>% dplyr::arrange(priorities, names)
 
 
-    p<-map_int(df_ref$names, ~which(df$names %in% .))
+    p<-purrr::map_int(df_ref$names, ~which(df$names %in% .))
 
     for(i in p) {
       rec<-as.list(df[i,])
@@ -313,7 +313,7 @@ guess_fob_1<-function(tododf, i, prefix='.dv') {
 }
 
 guess_fob<-function(tododf, prefix='.dv') {
-  map_int(seq_len(nrow(tododf)), ~as.integer(guess_fob_1(tododf=tododf, i=., prefix=prefix )))
+  purrr::map_int(seq_len(nrow(tododf)), ~as.integer(guess_fob_1(tododf=tododf, i=., prefix=prefix )))
 }
 
 #' Generates pair of priority, path from strings with format \code{4:`Chapter name`}.
