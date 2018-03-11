@@ -21,7 +21,7 @@ read_matrix<-function(filename='shared/macierze_analiz.xlsx', dt_structure=NULL,
     varname<-colnames(tododf)[[i]]
     var<-tododf[[i]]
     if('factor' %in% class(var)) {
-      tododf[,(varname):=as.character(var)]
+      tododf[varname]<-as.character(var)
     }
   }
 
