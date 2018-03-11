@@ -10,7 +10,8 @@ License: What license is it under?
 Encoding: UTF-8
 LazyData: true
 Imports: 
-  data.table
+  data.table,
+  yuxiaCharts
 Depends: 
   purrr,
   tibble,
