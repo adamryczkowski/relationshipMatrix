@@ -8,7 +8,7 @@ if(!dir.exists(dirname(plot_image_tmpfilename))) {
 }
 
 if(!is.null(gg)){
-  suppressWarnings(ggsave(plot=gg,filename=plot_image_tmpfilename, height=15, width=18.5, dpi = 450, units='cm', device = 'png'))
+  suppressWarnings(ggplot2::ggsave(plot=gg,filename=plot_image_tmpfilename, height=15, width=18.5, dpi = 450, units='cm', device = 'png'))
 }
 if(!file.exists(plot_image_tmpfilename)) {
   browser()

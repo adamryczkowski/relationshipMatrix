@@ -34,6 +34,7 @@ doc_chart<-R6::R6Class(
       private$rendered_chart_path_<-plot_image_filename
       #Here we would create depwalker object and return it
       source(system.file('05_render_plot.R', package = 'relationshipMatrix'), local = TRUE)
+      private$gg_<-NULL
     }
   ),
   active = list(
