@@ -150,7 +150,8 @@ render_matrix<-function(cellsdf, author='Adam Ryczkowski', format='docx', title=
   insert_chapters<-function(container, env_chapters, tags=character(0)) {
     df<-tibble::tibble(priorities=as.numeric(purrr::map_chr(as.list(env_chapters), 'priority')),
                names=names(env_chapters))
-    df_ref<-dplyr::arrange(df, priorities, names)
+    myorder<-order(df$priorities) #For stable sort
+    df_ref<-df[myorder,] #dplyr::arrange(df, priorities, names)
 
 
     p<-purrr::map_int(df_ref$names, ~which(df$names %in% .))
