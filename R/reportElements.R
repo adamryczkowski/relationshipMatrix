@@ -198,6 +198,26 @@ doc_container<-R6::R6Class(
       }
       return(base_depth)
     },
+    #Merges the current chapter with another. All the sections inside chapter_to_merge_with go to the corresponding sections in our document.
+    #If the current document doesn't have a section, it gets added on the end. The same with the contents outside any subsections.
+    #The chapter_to_merge will be destroyed after the operation.
+    merge_with_chapter=function(chapter_to_merge) {
+      browser()
+      source<-chapter_to_merge
+      source_items<-source$.__enclos_env__$private$children_
+      for(source_item in source_items) {
+        if('doc_section' %in% class(source_item)) {
+          target_chapter<-self$get_child_chapter_by_name(source_item$title)
+          if(is.null(target_chapter)) {
+            add_element(source_item)
+          } else {
+            target_chapter$merge_with_chapter(source_item)
+          }
+        } else {
+          add_element(source_item)
+        }
+      }
+    },
     get_folders=function(folder_type) { #Returns special folder path
       if(!is.null(private$parent_)) {
         pathcat::path.cat(private$parent_$get_folders(folder_type), private$get_folder_direct(folder_type))
@@ -218,13 +238,27 @@ doc_container<-R6::R6Class(
     get_child_chapter_by_name=function(chapter_name) {
       for(ch in private$children_) {
 #        ch<-dynamic_cast(R6Object = ch, class_name = 'doc_section')
-        if(!is.null(ch)){
-          if(ch$title == chapter_name) {
-            return(ch)
+        if('section' %in% class(ch)) {
+          if(!is.null(ch)){
+            if(ch$title == chapter_name) {
+              return(ch)
+            }
           }
         }
       }
       return(NULL)
+    },
+    get_child_chapter_names=function() {
+      ans<-rep(NA_character_, length(private$children))
+      i<-1
+      for(ch in private$children_) {
+        if('section' %in% class(ch)) {
+          ans[[i]]<-ch$title
+          i<-i+1
+        }
+      }
+      ans<-ans[seq_len(i-1)]
+      return(ans)
     }
   ),
   active = list(
