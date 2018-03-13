@@ -198,6 +198,8 @@ render_matrix<-function(cellsdf, author='Adam Ryczkowski', format='docx', title=
                          chapter_path=chapter_path,
                          chart_foldername=chart_foldername, cache_foldername=cache_foldername)
     raw_chapters$set_property('cellnr', i, indepth_level=1)
+    raw_chapters$set_property('rownr', cellsdf$rownr[[i]], indepth_level=1)
+    raw_chapters$set_property('colnr', cellsdf$colnr[[i]], indepth_level=1)
     raw_chapters$set_property('dv', cellsdf$depvar[[i]], indepth_level=1)
     raw_chapters$set_property('iv', cellsdf$indepvar[[i]], indepth_level=1)
     raw_chapters$set_property('gv', cellsdf$groupvar[[i]], indepth_level=1)
