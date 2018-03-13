@@ -80,6 +80,7 @@ AggregateType<-R6::R6Class(
             for(n in oldnames) {
               b[[n]]<-NULL
             }
+            return(b)
           } else {
             data.table::setnames(x = b, old = all_names, new = c('gv', 'iv'))
           }
