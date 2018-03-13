@@ -106,7 +106,7 @@ doc_reportElement<-R6::R6Class(
              "**, iv: **", self$get_property("iv", "?"),
              "**, gv: **", self$get_property("gv", "?"),
              "**, f: **", self$get_property("f", "?"),
-             "**, d: ", self$get_property("d", "?"))
+             "**, d: ", self$get_property("dispatcher", "?"))
     },
     get_property=function(property_name, default_value=NULL) {
       if(property_name %in% names(private$properties_)) {
@@ -420,7 +420,7 @@ doc_Document<-R6::R6Class(
     get_chapter_by_path=function(path_list) {
 #      browser()
       ch<-self
-      for(path_elem in path_list) {
+      for(path_elem in path_list[[1]]) {
         ch <- ch$get_child_chapter_by_name(path_elem)
         if(is.null(ch)) {
           browser() #Chapter not found
