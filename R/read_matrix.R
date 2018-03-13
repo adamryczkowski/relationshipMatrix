@@ -130,6 +130,8 @@ read_sheet<-function(sheet, sheetname, dt_structure, aggregate_types=list())
         rec_tmp$groupvar<-subrecords$groupvar[[j]]
         rec_tmp$indepvar<-subrecords$indepvar[[j]]
         rec_tmp$depvar<-subrecords$depvar[[j]]
+        rec_tmp$colnr<-col_nr
+        rec_tmp$rownr<-row_nr
         dict[[recnr]]<-rec_tmp
         recnr<-recnr+1
       }
