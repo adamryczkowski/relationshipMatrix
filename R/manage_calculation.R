@@ -143,7 +143,7 @@ render_matrix<-function(cellsdf, author='Adam Ryczkowski', format='docx', title=
     }
     cellsdf[['.chapter']][[i]]<-list(chapter_path)
   }
-
+  browser()
   #3. Now generate the document core chapters based on this layout
   doc<-doc_Document$new(chart_foldername = chart_foldername, cache_foldername = cache_foldername,
                         author = author, format = format, title = title)
