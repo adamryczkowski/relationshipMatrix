@@ -56,6 +56,7 @@ render_matrix<-function(cellsdf, author='Adam Ryczkowski', format='docx', title=
   # 1. Convert prefix1 from NA to '', like all other prefixes
 
   cellsdf<-enhance_tododf(cellsdf, filters)
+#  browser()
 
   title_property<-getOption('relationshipMatrix.property_cell_title')
   prefix_column<-getOption('relationshipMatrix.prefix')
@@ -140,16 +141,16 @@ render_matrix<-function(cellsdf, author='Adam Ryczkowski', format='docx', title=
       base_chapter[[cell_title]]<-tmp_chapter
 
     }
-    cellsdf[['.chapter']]<-list(chapter_path)
+    cellsdf[['.chapter']][[i]]<-list(chapter_path)
   }
 
   #3. Now generate the document core chapters based on this layout
   doc<-doc_Document$new(chart_foldername = chart_foldername, cache_foldername = cache_foldername,
                         author = author, format = format, title = title)
   insert_chapters<-function(container, env_chapters, tags=character(0)) {
-    df<-tibble(priorities=as.numeric(purrr::map_chr(as.list(env_chapters), 'priority')),
+    df<-tibble::tibble(priorities=as.numeric(purrr::map_chr(as.list(env_chapters), 'priority')),
                names=names(env_chapters))
-    df_ref<-df %>% dplyr::arrange(priorities, names)
+    df_ref<-dplyr::arrange(df, priorities, names)
 
 
     p<-purrr::map_int(df_ref$names, ~which(df$names %in% .))
@@ -191,11 +192,17 @@ render_matrix<-function(cellsdf, author='Adam Ryczkowski', format='docx', title=
 
     chapter_path<-cellsdf[['.chapter']][[i]]
 
+
     raw_chapters<-do_cell(cellsdf = cellsdf, cellnr = i, stats_dispatchers = stats_dispatchers, report_dispatchers = report_dispatchers,
                          report_functions = report_functions, aggregates = aggregates, filters = filters, df_task = df_task,
                          chapter_path=chapter_path,
                          chart_foldername=chart_foldername, cache_foldername=cache_foldername)
-
+    raw_chapters$set_property('cellnr', i, indepth_level=1)
+    raw_chapters$set_property('dv', cellsdf$depvar[[i]], indepth_level=1)
+    raw_chapters$set_property('iv', cellsdf$indepvar[[i]], indepth_level=1)
+    raw_chapters$set_property('gv', cellsdf$groupvar[[i]], indepth_level=1)
+    raw_chapters$set_property('f', cellsdf$filter.filterstring[[i]], indepth_level=1)
+#    browser()
     target_chapter<-doc$get_chapter_by_path(chapter_path)
     raw_chapters$insert_into(target_chapter)
   }
@@ -234,7 +241,7 @@ enhance_tododf<-function(tododf, filters) {
                                                      name = names(filters)[[.]]))
   filters_df<-objectstorage::lists_to_df(filters_list)
   colnames(filters_df)<-paste0(filter_prefix, colnames(filters_df))
-  tododf<-as_tibble(tododf)
+  tododf<-tibble::as_tibble(tododf)
   tododf<-dplyr::left_join(x=tododf,y=filters_df, by=c('filter'=paste0(filter_prefix, 'name')), suffix=c('', filter_prefix))
 
   #Add cell title (if missing)
@@ -598,9 +605,9 @@ prepare_chunkdf<-function(req_prop_list, dt, aggregates, filters, flag_use_depwa
       stop(paste0("Wrong type of filter ", f, " in filters dictionary. ",
                   "Expected (R6, Filter), got: ", paste0(class(f_fn), collapse=', ')))
     }
-    chunkdf<-dt %>% filter_(f_fn$filterstring) %>% select_(c(dv, iv, gv))
+    chunkdf<-filter_(df, f_fn$filterstring) %>% select_(c(dv, iv, gv))
   } else {
-    chunkdf<-df %>% select_(c(dv, iv, gv))
+    chunkdf<-select_(df, c(dv, iv, gv))
   }
 
   return(chunkdf)

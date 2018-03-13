@@ -44,6 +44,15 @@
 #   Each piece of text is parametrized by a single string.
 #9. Statistical_Methods_Catcher.
 #   Function that implements exactly the same interface as the Statistical_Methods, but instead of
+#
+# List of all reserved properties:
+# cellnr - number of cell responsible for the output
+# dv, iv, gv - dependent, independent and grouping variable (or aggregate)
+# f - filter string
+# d - dispatcher used
+# chart_debug - flag. If TRUE, debug string will be appended to the chart label
+# chart_dpi - DPI of the generated charts. Defaults to 450
+# chart_postprocess - flag. If FALSE, the chart will not be pre-processed. It will result in much faster rendering
 
 dynamic_cast<-function(R6Object, class_name) {
   while(!'class_name' %in% class(R6Object)) {
@@ -91,6 +100,35 @@ doc_reportElement<-R6::R6Class(
       all_tags<-self$get_tags()
       return(tag %in% all_tags)
     },
+    debug_text=function() {
+      paste0("cellnr: **", self$get_property("cellnr", -1),
+             "**, dv: **", self$get_property("dv", "?"),
+             "**, iv: **", self$get_property("iv", "?"),
+             "**, gv: **", self$get_property("gv", "?"),
+             "**, f: **", self$get_property("f", "?"),
+             "**, d: ", self$get_property("d", "?"))
+    },
+    get_property=function(property_name, default_value=NULL) {
+      if(property_name %in% names(private$properties_)) {
+        return(private$properties_[[property_name]])
+      } else {
+        if(is.null(private$parent_)) {
+          return(default_value)
+        } else {
+          return(private$parent_$get_property(property_name, default_value))
+        }
+      }
+    },
+    set_property=function(property_name, value, indepth_level=0) {
+      checkmate::assertTRUE(indepth_level>=0)
+      if(indepth_level==0) {
+        private$properties_[[property_name]]<-value
+      } else {
+        for(ch in private$children_) {
+          ch$set_property(property_name = property_name, value=value, indepth_level=indepth_level-1)
+        }
+      }
+    },
     get_folders=function(folder_type) { #Returns special folder path
       private$parent_$get_folders(folder_type)
     },
@@ -112,7 +150,8 @@ doc_reportElement<-R6::R6Class(
   #Can be accessed with object$.__enclos_env__$private
   private = list(
     parent_=NULL, #Parent object (of type reportElement)
-    tags_=character(0)
+    tags_=character(0),
+    properties_=list()
   )
 )
 
@@ -445,6 +484,11 @@ doc_Standalone_Chapter<-R6::R6Class(
     insert_into=function(target_chapter) {
       for(ch in private$children_) {
         target_chapter$add_element(ch)
+      }
+      #browser()
+      props<-private$properties_
+      for(i in seq_along(props)) {
+        target_chapter$set_property(names(props)[[i]], props[[i]])
       }
 
     }

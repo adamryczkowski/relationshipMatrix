@@ -21,7 +21,13 @@ doc_chart<-R6::R6Class(
 
       setattr(plot_image_filename, 'pandoc_attributes', paste0('#fig:', private$chart_label_))
 #      browser()
-      doc$add(paste0('\n\n', pander::pandoc.image.return(plot_image_filename, caption = private$chart_caption_), '\n\n'))
+      caption<-private$chart_caption_
+      if(self$get_property('chart_debug')) {
+#        browser()
+        caption<-paste0(caption, " [", self$debug_text(), ", chart: ", basename(private$rendered_chart_path_), "]")
+
+      }
+      doc$add(paste0('\n\n', pander::pandoc.image.return(plot_image_filename, caption = caption), '\n\n'))
     },
     pre_render=function() {
       #browser()
@@ -33,6 +39,8 @@ doc_chart<-R6::R6Class(
       plot_archive<-''
       private$rendered_chart_path_<-plot_image_filename
       #Here we would create depwalker object and return it
+      dpi=self$get_property('chart_dpi', 450)
+      chart_postprocess=self$get_property('chart_postprocess', TRUE)
       source(system.file('05_render_plot.R', package = 'relationshipMatrix'), local = TRUE)
       private$gg_<-NULL
     }

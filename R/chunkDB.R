@@ -62,6 +62,7 @@ ChunkDB<-R6::R6Class(
         }
       },
       chunkdf_ivdvgv = function() {
+        #browser()
         if(private$flag_never_serve_df_) {
           private$metaserver_$done_discovery()
 #          stop("Done discovery mode") #We trigger the error so we can grab the object
@@ -71,9 +72,30 @@ ChunkDB<-R6::R6Class(
         }
         df<-data.table::copy(private$chunkdf_)
         if(self$is_grouped()) {
-          data.table::setnames(x = df, old = c(private$depvar_, private$indepvar_, private$groupvar_), new = c('dv', 'iv', 'gv') )
+          all_names<-c(private$depvar_, private$indepvar_, private$groupvar_)
+          if(sum(duplicated(all_names))>0) {
+            oldnames<-setdiff(colnames(df), c('dv', 'iv', 'gv') )
+            df$dv<-private$chunkdf_[[private$depvar_]]
+            df$iv<-private$chunkdf_[[private$indepvar_]]
+            df$gc<-private$chunkdf_[[private$groupvar_]]
+            for(n in oldnames) {
+              df[[n]]<-NULL
+            }
+          } else {
+            data.table::setnames(x = df, old = c(private$depvar_, private$indepvar_, private$groupvar_), new = c('dv', 'iv', 'gv') )
+          }
         } else {
-          data.table::setnames(x = df, old = c(private$depvar_, private$indepvar_), new = c('dv', 'iv') )
+          all_names<-c(private$depvar_, private$indepvar_)
+          if(sum(duplicated(all_names))>0) {
+            oldnames<-setdiff(colnames(df), c('dv', 'iv') )
+            df$dv<-private$chunkdf_[[private$depvar_]]
+            df$iv<-private$chunkdf_[[private$indepvar_]]
+            for(n in oldnames) {
+              df[[n]]<-NULL
+            }
+          } else {
+            data.table::setnames(x = df, old = c(private$depvar_, private$indepvar_), new = c('dv', 'iv') )
+          }
         }
         df
       },
