@@ -77,7 +77,7 @@ ChunkDB<-R6::R6Class(
             oldnames<-setdiff(colnames(df), c('dv', 'iv', 'gv') )
             df$dv<-private$chunkdf_[[private$depvar_]]
             df$iv<-private$chunkdf_[[private$indepvar_]]
-            df$gc<-private$chunkdf_[[private$groupvar_]]
+            df$gv<-private$chunkdf_[[private$groupvar_]]
             for(n in oldnames) {
               df[[n]]<-NULL
             }

@@ -67,10 +67,25 @@ AggregateType<-R6::R6Class(
         return(b)
       },
       boot_ivgv=function(bootstrap_n=NA, ncpus=4) {
-#        browser()
+        browser()
+
+        all_names<-c(private$depvar_, private$indepvar_, private$groupvar_)
+
+
         b<-self$boot(bootstrap_n = bootstrap_n, ncpus=ncpus)
         if(private$db_$is_grouped()) {
-          data.table::setnames(b, c(private$db_$groupvar_name, private$db_$indepvar_name), c('gv', 'iv'))
+          all_names<-c(private$db_$groupvar_name, private$db_$indepvar_name)
+
+          if(sum(duplicated(all_names))>0) {
+            oldnames<-setdiff(colnames(b), c('iv', 'gv') )
+            b$iv<-private$chunkdf_[[private$indepvar_]]
+            b$gv<-private$chunkdf_[[private$groupvar_]]
+            for(n in oldnames) {
+              b[[n]]<-NULL
+            }
+          } else {
+            data.table::setnames(x = b, old = all_names, new = c('gv', 'iv'))
+          }
         } else {
           data.table::setnames(b, private$db_$indepvar_name, 'iv')
         }
