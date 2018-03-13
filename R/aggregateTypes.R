@@ -67,7 +67,6 @@ AggregateType<-R6::R6Class(
         return(b)
       },
       boot_ivgv=function(bootstrap_n=NA, ncpus=4) {
-        browser()
 
         b<-self$boot(bootstrap_n = bootstrap_n, ncpus=ncpus)
         if(private$db_$is_grouped()) {
