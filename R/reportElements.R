@@ -238,7 +238,7 @@ doc_container<-R6::R6Class(
     get_child_chapter_by_name=function(chapter_name) {
       for(ch in private$children_) {
 #        ch<-dynamic_cast(R6Object = ch, class_name = 'doc_section')
-        if('section' %in% class(ch)) {
+        if('doc_section' %in% class(ch)) {
           if(!is.null(ch)){
             if(ch$title == chapter_name) {
               return(ch)
