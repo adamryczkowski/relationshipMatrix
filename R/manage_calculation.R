@@ -50,7 +50,7 @@
 render_matrix<-function(cellsdf, author='Adam Ryczkowski', format='docx', title="Analiza statystyczna",
                         stats_dispatchers, report_dispatchers=list(), report_functions=list(),
                         aggregates=list(), filters=list(), df_task,
-                        chart_foldername='chapter', cache_foldername='cache'
+                        chart_foldername='chapter', cache_foldername='cache', flag_add_chapter_for_each_cell=TRUE
                         ){
   # Algorithm:
   # 1. Convert prefix1 from NA to '', like all other prefixes
@@ -134,7 +134,7 @@ render_matrix<-function(cellsdf, author='Adam Ryczkowski', format='docx', title=
       }
     }
     cell_title<-cellsdf[[title_property]][[i]]
-    if(cell_title!='') {
+    if(cell_title!='' && flag_add_chapter_for_each_cell) {
       chapter_path<-c(chapter_path, cell_title)
       tmp_chapter<-list(priority=NA_real_,
                         env=new.env(parent = emptyenv()))

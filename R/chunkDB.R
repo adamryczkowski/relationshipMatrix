@@ -12,11 +12,19 @@ ChunkDB<-R6::R6Class(
         private$flag_never_serve_df_<-flag_never_serve_df
       },
       depvar_label = function(flag_md=FALSE) {
-        prefix<-getOption('relationshipMatrix.property_depvar_prefix')
+        if(private$metaserver_reversed_) {
+          prefix<-getOption('relationshipMatrix.property_indepvar_prefix')
+        } else {
+          prefix<-getOption('relationshipMatrix.property_depvar_prefix')
+        }
         get_labels_var(var=private$depvar_, dt=private$chunkdf_, flag_md=flag_md, private$metaserver_, prefix = prefix)
       },
       indepvar_label = function(flag_md=FALSE) {
-        prefix<-getOption('relationshipMatrix.property_indepvar_prefix')
+        if(private$metaserver_reversed_) {
+          prefix<-getOption('relationshipMatrix.property_depvar_prefix')
+        } else {
+          prefix<-getOption('relationshipMatrix.property_indepvar_prefix')
+        }
         get_labels_var(var=private$depvar_, dt=private$chunkdf_, flag_md=flag_md, private$metaserver_, prefix = prefix)
       },
       groupvar_label = function(flag_md=FALSE) {
@@ -52,6 +60,7 @@ ChunkDB<-R6::R6Class(
                          filtr=private$filtr_,
                          flag_never_serve_df = private$flag_never_serve_df_)
         out$.__enclos_env__$private$metaserver_<-private$metaserver_
+        out$.__enclos_env__$private$metaserver_reversed_<-! private$metaserver_reversed_
         return(out)
       },
       is_grouped = function() {
@@ -163,7 +172,8 @@ ChunkDB<-R6::R6Class(
     groupvar_=NA,
     filtr_=NA,
     flag_never_serve_df_=FALSE,
-    metaserver_=NULL #Server that serves metadata
+    metaserver_=NULL, #Server that serves metadata
+    metaserver_reversed_=FALSE #True means that access to the var's properties via metaserver must be reversed
   )
 )
 

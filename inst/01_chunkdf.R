@@ -8,7 +8,7 @@
 #Returns: chunkdf
 
 get_chunkdf<-function(variables, filterstring=NULL, df) {
-#  browser()
+  browser()
   if(!is.null(filterstring) && filterstring!='') {
     #    if('character' %in% class(filterstring)) {
     #      filterstring<-parse(text = filterstring)
@@ -18,8 +18,10 @@ get_chunkdf<-function(variables, filterstring=NULL, df) {
   } else {
     chunkdf<-df
   }
-  chunkdf<-na.omit(df)
-  return(tibble::as_tibble(chunkdf)[variables])
+
+  chunkdf<-chunkdf[variables]
+  chunkdf<-na.omit(chunkdf)
+  return(tibble::as_tibble(chunkdf))
 }
 
 chunkdf<-get_chunkdf(variables, filterstring, df)
