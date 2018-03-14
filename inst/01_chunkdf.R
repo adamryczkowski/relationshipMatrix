@@ -8,7 +8,7 @@
 #Returns: chunkdf
 
 get_chunkdf<-function(variables, filterstring=NULL, df) {
-  browser()
+#  browser()
   if(!is.null(filterstring) && filterstring!='') {
     #    if('character' %in% class(filterstring)) {
     #      filterstring<-parse(text = filterstring)
