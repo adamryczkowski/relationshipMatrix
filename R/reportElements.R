@@ -161,12 +161,12 @@ doc_container<-R6::R6Class(
   inherit = doc_reportElement,
   public = list(
     initialize=function(parent, tags, depth_weight=1, chart_foldername='', cache_foldername='') {
-      checkmate::assertInt(add_depth)
-      checkmate::assertTRUE(add_depth>=0)
+      checkmate::assertInt(depth_weight)
+      checkmate::assertTRUE(depth_weight>=0)
       checkmate::assertString(cache_foldername)
       checkmate::assertString(chart_foldername)
       super$initialize(parent=parent, tags=tags)
-      private$depth_weight_<-add_depth
+      private$depth_weight_<-depth_weight
 
       private$chart_foldername_<-chart_foldername
       private$cache_foldername_<-cache_foldername
