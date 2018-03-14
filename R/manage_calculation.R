@@ -49,11 +49,14 @@
 #'
 render_matrix<-function(cellsdf, author='Adam Ryczkowski', format='docx', title="Analiza statystyczna",
                         stats_dispatchers, report_dispatchers=list(), report_functions=list(),
-                        aggregates=list(), filters=list(), df_task,
+                        aggregates=list(), filters=list(), df_task, header_depth_offset=0,
                         chart_foldername='chapter', cache_foldername='cache', flag_add_chapter_for_each_cell=TRUE
                         ){
   # Algorithm:
   # 1. Convert prefix1 from NA to '', like all other prefixes
+
+  checkmate::assertInt(header_depth_offset)
+  checkmate::assertTRUE(header_depth_offset>=0)
 
   cellsdf<-enhance_tododf(cellsdf, filters)
 #  browser()
@@ -146,7 +149,7 @@ render_matrix<-function(cellsdf, author='Adam Ryczkowski', format='docx', title=
   #browser()
   #3. Now generate the document core chapters based on this layout
   doc<-doc_Document$new(chart_foldername = chart_foldername, cache_foldername = cache_foldername,
-                        author = author, format = format, title = title)
+                        author = author, format = format, title = title, depth_height=header_depth_offset)
   insert_chapters<-function(container, env_chapters, tags=character(0)) {
     df<-tibble::tibble(priorities=as.numeric(purrr::map_chr(as.list(env_chapters), 'priority')),
                names=names(env_chapters))

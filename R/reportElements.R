@@ -160,15 +160,17 @@ doc_container<-R6::R6Class(
   "doc_container",
   inherit = doc_reportElement,
   public = list(
-    initialize=function(parent, tags, flag_add_depth=TRUE, chart_foldername='', cache_foldername='') {
-      checkmate::assert_flag(flag_add_depth)
+    initialize=function(parent, tags, add_depth=1, chart_foldername='', cache_foldername='') {
+      checkmate::assertInt(add_depth)
+      checkmate::assertTRUE(add_depth>=0)
       checkmate::assertString(cache_foldername)
       checkmate::assertString(chart_foldername)
       super$initialize(parent=parent, tags=tags)
-      private$flag_add_depth_<-flag_add_depth
+      private$depth_weight_<-add_depth
 
       private$chart_foldername_<-chart_foldername
       private$cache_foldername_<-cache_foldername
+
     },
     render = function(doc) {
       for(obj in private$children_) {
@@ -193,9 +195,7 @@ doc_container<-R6::R6Class(
       } else {
         base_depth<-0
       }
-      if(private$flag_add_depth_) {
-        base_depth<-base_depth+1
-      }
+      base_depth<-base_depth+private$depth_weight_
       return(base_depth)
     },
     #Merges the current chapter with another. All the sections inside chapter_to_merge_with go to the corresponding sections in our document.
@@ -295,9 +295,9 @@ doc_container<-R6::R6Class(
       return(sec_nr)
     },
     children_ = list(),
-    flag_add_depth_ = TRUE,
     chart_foldername_='',
-    cache_foldername_=''
+    cache_foldername_='',
+    depth_weight_=1 #How deep this container counts in depth()
   )
 )
 
@@ -306,9 +306,8 @@ doc_Insertable<-R6::R6Class(
   "doc_Insertable",
   inherit = doc_container,
   public = list(
-    initialize=function(parent, tags, flag_add_depth, chart_foldername='', cache_foldername='') {
-      super$initialize(parent = parent, tags = tags,
-                       flag_add_depth = TRUE,
+    initialize=function(parent, tags, chart_foldername='', cache_foldername='', depth_weight=1) {
+      super$initialize(parent = parent, tags = tags, depth_weight = depth_weight,
                        chart_foldername=chart_foldername, cache_foldername=cache_foldername)
     },
     insert_paragraph=function(text, tags=character(0)) {
@@ -357,11 +356,13 @@ doc_section<-R6::R6Class(
   "doc_section",
   inherit = doc_Insertable,
   public = list(
-    initialize=function(parent, tags, text, number=NA, chart_foldername='', cache_foldername='') {
+    initialize=function(parent, tags, text, number=NA, chart_foldername='', cache_foldername='', depth_weight=1) {
       checkmate::assertString(text)
       checkmate::assertNumber(number, na.ok=TRUE)
+      checkmate::assertInt(depth_weight)
+      checkmate::assertTRUE(depth_weight>0)
       super$initialize(parent = parent, tags = tags,
-                       flag_add_depth = TRUE,
+                       depth_weight = depth_weight,
                        chart_foldername=chart_foldername, cache_foldername=cache_foldername)
       private$text_<-text
       private$number_<-number
@@ -423,13 +424,12 @@ doc_Document<-R6::R6Class(
   "doc_Document",
   inherit = doc_Insertable,
   public = list(
-    initialize=function(chart_foldername=NULL, cache_foldername=NULL, author, format='docx', title) {
-      super$initialize(parent=NULL, tags=character(0),
+    initialize=function(chart_foldername=NULL, cache_foldername=NULL, author, format='docx', title, depth_weight=0) {
+      super$initialize(parent=NULL, tags=character(0), depth_weight = depth_weight,
                        cache_foldername=cache_foldername, chart_foldername=chart_foldername)
       checkmate::testString(author)
       checkmate::testString(title)
       checkmate::testString(format)
-      private$flag_add_depth_<-FALSE
 
       private$author_<-author
       private$format_<-format
@@ -498,7 +498,7 @@ doc_Standalone_Chapter<-R6::R6Class(
   public = list(
     initialize=function(chart_foldername='', cache_foldername='') {
       super$initialize(parent = NULL, tags = character(0),
-                       flag_add_depth=FALSE, chart_foldername=chart_foldername,
+                       depth_weight=0, chart_foldername=chart_foldername,
                        cache_foldername=cache_foldername)
     },
     set_parent=function(newparent) {
@@ -553,7 +553,7 @@ doc_Statistical_Methods<-R6::R6Class(
   public = list(
     initialize=function(parent) {
       super$initialize(parent = parent, tags=character(0),
-                       flag_add_depth = FASLE, foldername='')
+                       depth_weight = 0, foldername='')
     },
     store_statistical_method=function(chapter_name, chapter) {
       if(chapter_name %in% names(private$methods_)) {
