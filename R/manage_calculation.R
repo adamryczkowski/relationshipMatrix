@@ -149,7 +149,7 @@ render_matrix<-function(cellsdf, author='Adam Ryczkowski', format='docx', title=
   #browser()
   #3. Now generate the document core chapters based on this layout
   doc<-doc_Document$new(chart_foldername = chart_foldername, cache_foldername = cache_foldername,
-                        author = author, format = format, title = title, depth_height=header_depth_offset)
+                        author = author, format = format, title = title, depth_weight=header_depth_offset)
   insert_chapters<-function(container, env_chapters, tags=character(0)) {
     df<-tibble::tibble(priorities=as.numeric(purrr::map_chr(as.list(env_chapters), 'priority')),
                names=names(env_chapters))
