@@ -19,7 +19,7 @@ get_chunkdf<-function(variables, filterstring=NULL, df) {
     chunkdf<-df
   }
 
-  chunkdf<-chunkdf[variables]
+  chunkdf<-tibble::as_tibble(chunkdf)[variables]
   chunkdf<-na.omit(chunkdf)
   return(tibble::as_tibble(chunkdf))
 }
