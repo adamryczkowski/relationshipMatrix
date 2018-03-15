@@ -12,7 +12,8 @@ LazyData: true
 Imports: 
   data.table,
   yuxiaCharts,
-  ggplot2
+  ggplot2,
+  objectstorage
 Depends: 
   purrr,
   tibble,
@@ -25,4 +26,5 @@ Depends:
   ggplot2
 Remotes:
 	 adamryczkowski/danesurowe,
-	 adamryczkowski/depwalker
+	 adamryczkowski/depwalker,
+	 adamryczkowski/objectstorage

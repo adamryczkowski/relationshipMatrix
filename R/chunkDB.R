@@ -41,7 +41,7 @@ ChunkDB<-R6::R6Class(
         } else {
           prefix<-getOption('relationshipMatrix.property_indepvar_prefix')
         }
-        private$metadata_$get_property(paste0(prefix, property_name))
+        private$metaserver_$get_property(paste0(prefix, property_name))
       },
       indepvar_property = function(property_name) {
         if(private$metaserver_reversed_) {
@@ -49,11 +49,11 @@ ChunkDB<-R6::R6Class(
         } else {
           prefix<-getOption('relationshipMatrix.property_depvar_prefix')
         }
-        private$metadata_$get_property(paste0(prefix, property_name))
+        private$metaserver_$get_property(paste0(prefix, property_name))
       },
       groupvar_property = function(property_name) {
         prefix<-getOption('relationshipMatrix.property_groupvar_prefix')
-        private$metadata_$get_property(paste0(prefix, property_name))
+        private$metaserver_$get_property(paste0(prefix, property_name))
       },
       df_label = function(flag_md=FALSE) {
 
