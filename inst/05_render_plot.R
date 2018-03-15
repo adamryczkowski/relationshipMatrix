@@ -10,8 +10,6 @@ if(!dir.exists(dirname(plot_image_tmpfilename))) {
 
 if(!is.null(gg)){
   if(chart_postprocess) {
-    suppressWarnings(ggplot2::ggsave(plot=gg,filename=plot_image_filename, height=15, width=18.5, dpi = dpi, units='cm', device = 'png'))
-  } else {
     suppressWarnings(ggplot2::ggsave(plot=gg,filename=plot_image_tmpfilename, height=15, width=18.5, dpi = dpi, units='cm', device = 'png'))
     if(!file.exists(plot_image_tmpfilename)) {
       browser()
@@ -22,5 +20,7 @@ if(!is.null(gg)){
                   plot_archive, '"'),
            ignore.stdout = TRUE, ignore.stderr = TRUE, wait = TRUE)
 
+  } else {
+    suppressWarnings(ggplot2::ggsave(plot=gg,filename=plot_image_filename, height=15, width=18.5, dpi = dpi, units='cm', device = 'png'))
   }
 }
