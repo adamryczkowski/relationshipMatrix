@@ -64,7 +64,6 @@ filter_info<-function(pAcc, language='PL', chapter) {
     # (np. ivNA, ivdvNA, ivdvgvNA, nazwaną dalej NA1, NA2, ..., NAn, a zmienne var1, var2, ... varn),
     # to raportuję "[Ponadto ]ze zbioru wykluczono ", i dalej, dla i = n do 1 (wspak): "<ncases_NA<i>> obserwacji z powodu braków obserwacji zmiennej <var<i>>[, oraz dodatkowo ]"
     # Ostatniego członu nie dodaję dla ostatniej iteracji, tj. dla i=1.
-    browser()
     rowsums<-plyr::aaply(NA_pattern, 1, sum)
     ord_rowsums<-order(rowsums, decreasing = TRUE)
     NA_pattern_ord<-NA_pattern[ord_rowsums,,drop=FALSE]
@@ -101,6 +100,8 @@ filter_info<-function(pAcc, language='PL', chapter) {
       combs<-gtools::combinations(length(islands),2)
       intersects<-plyr::aaply(combs, 1, function(x) length(intersect(islands[[x[[1]]]], islands[[x[[2]]]]) ))
       if(sum(intersects)==0) {
+        browser()
+
         # 4. Jeśli wszystkie niezerowe grupy tworzą ściśle rozłączne zbiory (np. ivNA, dvgvNA), to raportuję:
         # "[Ponadto ]ze zbioru wykluczono ", i dalej, dla każdej z grup: "<ncases> obserwacji z powodu braków obserwacji zmiennej|zmiennych <vars>[, ]"
         # I na końcu ".". Koniec.
@@ -142,7 +143,6 @@ filter_info<-function(pAcc, language='PL', chapter) {
         colnames(db)<-dbnames
 
         lista<-plyr::llply(db, function(x) which(is.na(x)))
-        browser()
 
         #Poniższe linijki rysują (w miarę optymalny) diagram Venna. Pozostało dodać opis, być może tabelkę,
         #i najważniejsze - wkleić prawidłowo wykres, który nie wymaga preprocesowania.
@@ -156,7 +156,7 @@ filter_info<-function(pAcc, language='PL', chapter) {
                     "Analizie statystycznej poddano pozostałe ", liczebnik_przypadki(nrow(db1)), ".")
 
         df<-tibble('Zmienne'=plyr::aaply(1-NA_pattern, 1, function(x) paste0(names(which(x==1)), collapse=', ' )),
-                   'Liczba braków danych'=NA_counts)
+                   'Liczba braków danych'=danesurowe::report_values.integer(NA_counts))
         df<-rbind(df, tibble('Zmienne'="wszystkie",
                              'Liczba braków danych'=sum(NA_counts)))
         caption<-paste0("Rozkład częstości braków danych w analizowanym zbiorze i zmiennych za nie odpowiedzialnych. ",
@@ -180,8 +180,7 @@ filter_info<-function(pAcc, language='PL', chapter) {
         chapter$insert_paragraph(msg, tags='NA_report')
         chapter<-chapter$insert_section(text="Pochodzenie braków danych", tags=tags)
         chapter$insert_paragraph(msg, tags=tags)
-        chapter$insert_table(caption=caption, table_df=df, tags=tags,  flag_header_in_md=TRUE,
-                             emph_rows=c(rep(FALSE, length(NA_counts)), TRUE))
+        chapter$insert_table(caption=caption, table_df=df, tags=tags, flag_header_in_md=TRUE)
         path<-chapter$get_folders('chart')
 
         draw_chart_fn<-function() {
