@@ -176,7 +176,7 @@ discover_parameters<-function(pa, user_function, user_arguments=list()) {
 
 
   if('chapter' %in% names(user_arguments)) {
-    chapter<-doc_Void_Document$new(chart_foldername = '', cache_foldername = '')
+    user_arguments$chapter<-doc_Void_Document$new(chart_foldername = '', cache_foldername = '')
   }
 
   #Execute the dispatcher in the discovery mode, to get the list of all relevant properties
