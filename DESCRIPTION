@@ -14,7 +14,8 @@ Imports:
   ggplot2,
   objectstorage,
   mice,
-  gtools
+  gtools,
+  gplots
 Depends: 
   purrr,
   tibble,
