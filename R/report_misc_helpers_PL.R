@@ -1,12 +1,12 @@
 filter_info<-function(pAcc, language='PL', chapter) {
-  #browser()
+  browser()
   db_obj<-pAcc$serve_db()
   NA_rep<-db_obj$NA_report()
   flag_add_chapter<-FALSE
 
   liczebnik_przypadki<-function(liczba) danesurowe::liczebnik(liczba, mianownik = "przypadek", dopelniacz = "przypadków", lmnoga = "przypadki")
 
-  if(db_obj$filter_label()!='') {
+  if(db_obj$filterstring!='') {
     if(language=='PL') {
       msg_filter<-paste0("Przed wykonaniem analizy zastosowano filtr ",  db_obj$filter_label(), ", który ze zbioru o liczności ", NA_rep$nrow_total, " odrzucił ",
                          liczebnik_przypadki(NA_rep$nrow_total - db_obj$nrow))

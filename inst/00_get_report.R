@@ -121,7 +121,7 @@ do_cell<-function(df, indepvar, depvar, groupvar, filter, all_properties,  stats
   }
 
   dbreversed<-pAcc$is_reversed()
-#  browser()
+  #  browser()
   #4. Insert NA report. Raport is assumed to be generated fast (if this is not true, we should move it to external task)
   language<-all_properties[[language_prop]] #Getting the language is important
   pAcc<-propertyAccessor$new(db=dbobj, properties = all_properties)
@@ -176,8 +176,7 @@ discover_parameters<-function(pa, user_function, user_arguments=list()) {
 
 
   if('chapter' %in% names(user_arguments)) {
-    chapter<-doc_Standalone_Chapter$new(chart_foldername = '', cache_foldername = '')
-    chapter$discard_changes<-TRUE
+    chapter<-doc_Void_Document$new(chart_foldername = '', cache_foldername = '')
   }
 
   #Execute the dispatcher in the discovery mode, to get the list of all relevant properties
@@ -185,9 +184,6 @@ discover_parameters<-function(pa, user_function, user_arguments=list()) {
     do.call(user_function, args=c(pa, user_arguments)),
     error = function(e) e
   )
-  if('chapter' %in% names(user_arguments)) {
-    chapter$discard_changes<-FALSE
-  }
 
   if(! 'error' %in% class(ans)) {
     pa$.__enclos_env__$private$mode_<-2
