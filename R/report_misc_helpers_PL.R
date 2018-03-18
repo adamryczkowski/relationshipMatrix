@@ -106,8 +106,10 @@ filter_info<-function(pAcc, language='PL', chapter) {
         # "[Ponadto ]ze zbioru wykluczono ", i dalej, dla każdej z grup: "<ncases> obserwacji z powodu braków obserwacji zmiennej|zmiennych <vars>[, ]"
         # I na końcu ".". Koniec.
         msg<-paste0("ze zbioru wykluczono ")
-        for(i in seq_len(islands)) {
-          if(i==2) {
+        for(i in seq_along(islands)) {
+          if(i==1) {
+            #do nothing
+          } else if (i==2) {
             msg<-paste0(msg, ", poza tym wykluczono ")
           } else if (i==length(islands)) {
             msg<-paste0(msg, " oraz ")
@@ -121,7 +123,7 @@ filter_info<-function(pAcc, language='PL', chapter) {
           df<-tibble(labels = i_labels, .colnames=names(i_labels))
           setattr(df$labels, 'decoration', '')
 
-          msg<-paste0(msg, liczebnik_przypadki(counts), " z powodu braków obserwacji ",
+          msg<-paste0(msg, liczebnik_przypadki(counts[[pos]]), " z powodu braków obserwacji ",
                       if(nrow(df)>1) {
                         "zmiennych "
                       } else {
