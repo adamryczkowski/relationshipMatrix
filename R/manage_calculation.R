@@ -129,6 +129,8 @@ render_matrix<-function(cellsdf, author='Adam Ryczkowski', format='docx', title=
           }
         } else {
           tmp_chapter<-list(priority=ch_prio,
+                            rownr=cellsdf$rownr[[i]],
+                            colnr=cellsdf$colnr[[i]],
                             env=new.env(parent = emptyenv()))
           base_chapter[[ch_name]]<-tmp_chapter
         }
@@ -140,6 +142,8 @@ render_matrix<-function(cellsdf, author='Adam Ryczkowski', format='docx', title=
     if(cell_title!='' && flag_add_chapter_for_each_cell) {
       chapter_path<-c(chapter_path, cell_title)
       tmp_chapter<-list(priority=NA_real_,
+                        rownr=cellsdf$rownr[[i]],
+                        colnr=cellsdf$colnr[[i]],
                         env=new.env(parent = emptyenv()))
       base_chapter[[cell_title]]<-tmp_chapter
 
@@ -152,8 +156,10 @@ render_matrix<-function(cellsdf, author='Adam Ryczkowski', format='docx', title=
                         author = author, format = format, title = title, depth_weight=header_depth_offset)
   insert_chapters<-function(container, env_chapters, tags=character(0)) {
     df<-tibble::tibble(priorities=as.numeric(purrr::map_chr(as.list(env_chapters), 'priority')),
-               names=names(env_chapters))
-    myorder<-order(df$priorities) #For stable sort
+                       rownr=as.integer(purrr::map_chr(as.list(env_chapters), 'rownr')),
+                       colnr=as.integer(purrr::map_chr(as.list(env_chapters), 'colnr')),
+                       names=names(env_chapters))
+    myorder<-order(df$priorities, df$rownr, df$colnr) #For stable sort
     df_ref<-df[myorder,] #dplyr::arrange(df, priorities, names)
 
 
