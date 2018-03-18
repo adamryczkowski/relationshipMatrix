@@ -350,6 +350,10 @@ doc_Insertable<-R6::R6Class(
       self$add_element(cht)
       return(cht$label)
     },
+    get_object_hash=function(caption, file_prefix) {
+      parent_hash<-self$address_string()
+      generate_table_hash(parent_hash = parent_hash, label = caption, file_prefix = file_prefix)
+    },
     insert_reference_chapter=function(title, id) {
       browser() #TODO
     }
