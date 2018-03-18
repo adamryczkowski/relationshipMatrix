@@ -1,5 +1,4 @@
 filter_info<-function(pAcc, language='PL', chapter) {
-  browser()
   db_obj<-pAcc$serve_db()
   NA_rep<-db_obj$NA_report()
   flag_add_chapter<-FALSE
