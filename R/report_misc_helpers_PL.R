@@ -99,7 +99,7 @@ filter_info<-function(pAcc, language='PL', chapter) {
     } else {
       islands<-plyr::alply(1-NA_pattern, 1, function(x) which(x==1))
       combs<-gtools::combinations(length(islands),2)
-      intersects<-plyr::aaply(combs, 1, function(x) length(intersect(x[[1]], x[[2]]) ))
+      intersects<-plyr::aaply(combs, 1, function(x) length(intersect(islands[[x[[1]]]], islands[[x[[2]]]]) ))
       if(sum(intersects)==0) {
         # 4. Jeśli wszystkie niezerowe grupy tworzą ściśle rozłączne zbiory (np. ivNA, dvgvNA), to raportuję:
         # "[Ponadto ]ze zbioru wykluczono ", i dalej, dla każdej z grup: "<ncases> obserwacji z powodu braków obserwacji zmiennej|zmiennych <vars>[, ]"
@@ -155,7 +155,7 @@ filter_info<-function(pAcc, language='PL', chapter) {
                     " z powodów braków obserwacji zmiennych ", danesurowe::format_item_list(df = df), ". ",
                     "Analizie statystycznej poddano pozostałe ", liczebnik_przypadki(nrow(db1)), ".")
 
-        df<-tibble('Zmienne'=plyr::alply(1-NA_pattern, 1, function(x) which(x==1) ),
+        df<-tibble('Zmienne'=plyr::aaply(1-NA_pattern, 1, function(x) paste0(names(which(x==1)), collapse=', ' )),
                    'Liczba braków danych'=NA_counts)
         df<-rbind(df, tibble('Zmienne'="wszystkie",
                              'Liczba braków danych'=sum(NA_counts)))
