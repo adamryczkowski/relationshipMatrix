@@ -60,9 +60,12 @@ do_cell<-function(df, indepvar, depvar, groupvar, filter, all_properties,  stats
   #  browser()
   language_prop<-getOption('relationshipMatrix.property_i18n_language')
   #1. Grabs the chunk db
-  chunkdf<-get_chunkdf(df=df, indepvar=indepvar, depvar=depvar, filter=filter, groupvar=groupvar)
-  dbobj<-relationshipMatrix::ChunkDB$new(chunkdf = df, depvar = dv, indepvar = iv,
-                                         groupvar = gv, filtr = filter$filterstring, flag_never_serve_df = TRUE)
+  ans<-get_chunkdf(df=df, indepvar=indepvar, depvar=depvar, filter=filter, groupvar=groupvar)
+  chunkdf<-ans$chunkdf
+  filterNA<-ans$filterNA
+  nrow_total<-nrow(df)
+  dbobj<-relationshipMatrix::ChunkDB$new(chunkdf = df, depvar = dv, indepvar = iv, nrow_total=nrow_total,
+                                         groupvar = gv, filter = filter, filterNA = filterNA, flag_never_serve_df = TRUE)
 
 
   #browser()
@@ -118,9 +121,16 @@ do_cell<-function(df, indepvar, depvar, groupvar, filter, all_properties,  stats
   }
 
   dbreversed<-pAcc$is_reversed()
-  #browser()
+#  browser()
+  #4. Insert NA report. Raport is assumed to be generated fast (if this is not true, we should move it to external task)
+  language<-all_properties[[language_prop]] #Getting the language is important
+  pAcc<-propertyAccessor$new(db=dbobj, properties = all_properties)
+  discover_parameters(pa=pAcc, user_function=filter_info, user_arguments=list(language=language, chapter=chapter))
+  properties<-pAcc$.__enclos_env__$private$get_discovered_properties_list(flag_include_dbreversal=FALSE)
+  pAcc=propertyAccessor$new(properties=properties, db=dbobj, mode=3)
+  filter_info(pAcc = pAcc, language = language, chapter = chapter)
 
-
+  #5. Execute each report functions - the functions that generate the actual report
   for(i in seq_along(report_functions)) {
     fun<-report_functions[[i]]
     if('character' %in% class(fun)) {
@@ -143,7 +153,6 @@ do_cell<-function(df, indepvar, depvar, groupvar, filter, all_properties,  stats
     }
 
     #    browser()
-    language<-pAcc$get_property(language_prop) #Getting the language is important
     if(language=='PL') {
       options(OutDec= ",")
     } else {
@@ -167,7 +176,7 @@ discover_parameters<-function(pa, user_function, user_arguments=list()) {
 
 
   if('chapter' %in% names(user_arguments)) {
-    chapter<-user_arguments$chapter
+    chapter<-doc_Standalone_Chapter$new(chart_foldername = '', cache_foldername = '')
     chapter$discard_changes<-TRUE
   }
 

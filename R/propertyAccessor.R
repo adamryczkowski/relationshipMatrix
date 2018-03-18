@@ -183,9 +183,25 @@ propertyAccessor<-R6::R6Class("propertyAccessor",
 )
 
 validate_bool<-function(value) {
-  as.boolean(value)
+  ans<-as.boolean(value)
+  checkmate::assertLogical(ans)
+  ans
 }
 
 validate_int<-function(value) {
-  as.integer(value)
+  ans<-as.integer(value)
+  checkmate::assertInt(ans)
+  ans
+}
+
+validate_numeric<-function(value) {
+  ans<-as.numeric(value)
+  checkmate::assertNumber(ans)
+  ans
+}
+
+validate_string<-function(value) {
+  ans<-as.character(value)
+  checkmate::assertString(ans)
+  ans
 }

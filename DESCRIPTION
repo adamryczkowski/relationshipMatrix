@@ -12,7 +12,9 @@ LazyData: true
 Imports: 
   data.table,
   ggplot2,
-  objectstorage
+  objectstorage,
+  mice,
+  gtools
 Depends: 
   purrr,
   tibble,

@@ -26,6 +26,9 @@ AggregateType<-R6::R6Class(
         private$theoretical_max_<-as.numeric(theoretical_max)
         private$unit_<-unit
       },
+      var_labels=function() {
+        setNames(private$db_metadata_$label, private$db_metadata_$colname)
+      },
       boot=function(bootstrap_n=NA, ncpus=4) {
  #       browser()
         if(is.na(bootstrap_n)) {
@@ -107,6 +110,11 @@ AggregateType<-R6::R6Class(
 
   #Can be accessed with object$.__enclos_env__$private
   private = list(
+    discover_metadata=function(db_structure) {
+      all_vars<-self$all_vars
+      pos<-map_int(aggrt$dymorfizm1$all_vars, ~which(dt_structure$colname %in% .))
+      private$db_metadata_<-dt_structure[pos,]
+    },
     name_=NA_character_, #colname of the variable. This is how the variable is going to be identified programmatically.
     fn_=NA, # Function that takes database and index variable of valid rows (just like in bootstrap),
     # and returns value of the aggregate and standard error estimates.
@@ -118,7 +126,8 @@ AggregateType<-R6::R6Class(
     theoretical_min_=NA_real_,
     theoretical_max_=NA_real_,
     unit_=NA_character_,
-    db_=NULL
+    db_=NULL,
+    db_metadata_=NULL #data.frame with all metadatas for the all variables
   )
 )
 

@@ -3,13 +3,21 @@ ChunkDB<-R6::R6Class(
   #DB accessor that can nicely format all labels
   public =
     list(
-      initialize=function(chunkdf, depvar, indepvar, groupvar, filtr, flag_never_serve_df=FALSE) {
+      initialize=function(chunkdf, depvar, indepvar, groupvar, filter, flag_never_serve_df=FALSE, filterNA, nrow_total) {
+        checkmate::assertClass(chunkdf, 'data.frame')
         private$chunkdf_<-chunkdf
         private$depvar_<-depvar
         private$indepvar_<-indepvar
+        checkmate::assertString(groupvar)
         private$groupvar_<-groupvar
-        private$filtr_<-filtr
+        checkmate::assertClass(filter, "Filter")
+        private$filter_<-filter
+        checkmate::assert_int(filterNA)
+        private$filterNA_<-filterNA
+        checkmate::assertFlag(flag_never_serve_df)
         private$flag_never_serve_df_<-flag_never_serve_df
+        checkmate::assertInt(nrow_total)
+        private$nrow_total_<-nrow_total
       },
       depvar_label = function(flag_md=FALSE) {
         if(private$metaserver_reversed_) {
@@ -35,6 +43,43 @@ ChunkDB<-R6::R6Class(
           NA_character_
         }
       },
+      filter_label = function(flag_md=FALSE) {
+        if(is.null(private$metaserver_)) {
+          filter<-private$filter_$label
+        } else {
+          filter<-private$metaserver_$get_property(paste0(getOption('relationshipMatrix.chunkdf_properties')$filter, '.label'))
+        }
+        if(flag_md) {
+          ans<-paste0('_', filter, '_')
+        } else {
+          ans<-filter
+        }
+        return(ans)
+      },
+      #Returns named vector of all labels (keys are varnames). They include aggregates, if they exist
+      all_labels = function() {
+        vars<-character(0)
+        labels<-character(0)
+        if(self$is_depvar_aggregate()) {
+          vars<-c(vars, private$depvar_$all_vars)
+          labels<-c(labels, private$depvar_$var_labels())
+        } else {
+          vars<-c(vars, private$depvar_)
+          labels<-c(labels, self$depvar_label())
+        }
+        if(self$is_indepvar_aggregate()) {
+          vars<-c(vars, private$indepvar_$all_vars)
+          labels<-c(labels, private$indepvar_$var_labels())
+        } else {
+          vars<-c(vars, private$indepvar_)
+          labels<-c(labels, self$indepvar_label())
+        }
+        if(self$is_grouped()) {
+          vars<-c(vars, private$groupvar_)
+          labels<-c(labels, self$groupvar_label())
+        }
+        return(setNames(labels, vars))
+      },
       depvar_property = function(property_name) {
         if(private$metaserver_reversed_) {
           prefix<-getOption('relationshipMatrix.property_depvar_prefix')
@@ -59,6 +104,11 @@ ChunkDB<-R6::R6Class(
 
         browser() #TODO - należy dodać nazwę bazy danych, uwzględniającą filtr
       },
+      #Returns data.frame that lists resons of NA in the filtered data set.
+      NA_report = function() {
+        NA_pattern<-mice::md.pattern(private$chunkdf_)
+        return(list(NA_pattern=NA_pattern, NA_filter=private$filterNA_, nrow_total=private$nrow_total_))
+      },
       dvlevels = function(flag_recalculate=FALSE, flag_include_NA=FALSE) {
         checkmate::assertFALSE(self$is_depvar_aggregate())
         danesurowe::GetLevels(private$chunkdf_[[private$depvar_]], flag_recalculate = flag_recalculate, flag_include_NA = flag_include_NA)
@@ -77,7 +127,9 @@ ChunkDB<-R6::R6Class(
                          depvar=private$indepvar_,
                          indepvar=private$depvar_,
                          groupvar=private$groupvar_,
-                         filtr=private$filtr_,
+                         filter=private$filter_,
+                         filterNA=private$filterNA_,
+                         nrow_total=private$nrow_total_,
                          flag_never_serve_df = private$flag_never_serve_df_)
         out$.__enclos_env__$private$metaserver_<-private$metaserver_
         out$.__enclos_env__$private$metaserver_reversed_<-! private$metaserver_reversed_
@@ -90,16 +142,27 @@ ChunkDB<-R6::R6Class(
           FALSE
         }
       },
-      chunkdf_ivdvgv = function() {
-        #browser()
+      chunkdf = function(flag_include_NA=FALSE) {
+        checkmate::assertFlag(flag_include_NA)
         if(private$flag_never_serve_df_) {
           private$metaserver_$done_discovery()
-#          stop("Done discovery mode") #We trigger the error so we can grab the object
+          stop("Done discovery mode") #We trigger the error so we can grab the object
         }
+        if(!flag_include_NA) {
+          db<-na.omit(private$chunkdf_)
+        } else {
+          db<-private$chunkdf_
+        }
+        return(db)
+      },
+      chunkdf_ivdvgv = function(flag_include_NA=FALSE) {
+        #browser()
+
         if(self$is_depvar_aggregate() || self$is_indepvar_aggregate()) {
           stop("Cannot cat ivdvgv format if either of variables is aggregate")
         }
-        df<-data.table::copy(private$chunkdf_)
+        df<-data.table::copy(self$chunkdf(flag_include_NA))
+
         if(self$is_grouped()) {
           all_names<-c(private$depvar_, private$indepvar_, private$groupvar_)
           if(sum(duplicated(all_names))>0) {
@@ -126,40 +189,21 @@ ChunkDB<-R6::R6Class(
             data.table::setnames(x = df, old = c(private$depvar_, private$indepvar_), new = c('dv', 'iv') )
           }
         }
-        df
-      },
-      filter_label = function(flag_md=FALSE) {
-        if(is.null(private$metaserver_)) {
-          filtr<-private$filtr_$label
-        } else {
-          filtr<-private$metaserver_$get_property(paste0(getOption('relationshipMatrix.chunkdf_properties')$filter, '.label'))
-        }
-        if(flag_md) {
-          ans<-paste0('_', filtr, '_')
-        } else {
-          ans<-filtr
-        }
-        return(ans)
+        return(df)
       }
     ),
   active = list(
-    chunkdf = function() {
-      if(private$flag_never_serve_df_) {
-        private$metaserver_$done_discovery()
-        stop("Done discovery mode") #We trigger the error so we can grab the object
-      }
-      private$chunkdf_
-    },
     filterstring = function() {
-      if(!'Filter' %in% class(private$filtr_)){
+      if(!'Filter' %in% class(private$filter_)){
         return('')
       } else {
-        return(private$filtr_$filterstring)
+        return(private$filter_$filterstring)
       }
     },
     depvar_name = function() {private$depvar_},
     indepvar_name = function() {private$indepvar_},
     groupvar_name = function() {private$groupvar_},
+    nrow = function() {nrow(private$chunkdf_)},
     depvar = function() {
 #      browser()
       if('character' %in% class(private$depvar_)) {
@@ -190,7 +234,9 @@ ChunkDB<-R6::R6Class(
     depvar_=NA,
     indepvar_=NA,
     groupvar_=NA,
-    filtr_=NA,
+    filter_=NA,
+    filterNA_=NA_integer_,
+    nrow_total_=NA_integer_,
     flag_never_serve_df_=FALSE,
     metaserver_=NULL, #Server that serves metadata
     metaserver_reversed_=FALSE #True means that access to the var's properties via metaserver must be reversed

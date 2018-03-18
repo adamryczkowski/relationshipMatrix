@@ -13,15 +13,19 @@ get_chunkdf<-function(variables, filterstring=NULL, df) {
     #    if('character' %in% class(filterstring)) {
     #      filterstring<-parse(text = filterstring)
     #    }
-    chunkdf<-dplyr::filter_(df, filterstring)
+    filterobj<-rlang::parse_quo(filterstring, env = parent.frame())
+    filterNA<-sum(is.na(dplyr::transmute(df, filter=!!filterobj)[[1]]))
+
+    chunkdf<-dplyr::filter(df, !!filterobj)
     #    chunkdf<-dplyr::filter(df, !! filterstring)
   } else {
     chunkdf<-df
+    filterNA<-0
   }
 
   chunkdf<-tibble::as_tibble(chunkdf)[variables]
-  chunkdf<-na.omit(chunkdf)
-  return(tibble::as_tibble(chunkdf))
+
+  return(list(chunkdf=tibble::as_tibble(chunkdf), filterNA=filterNA))
 }
 
 chunkdf<-get_chunkdf(variables, filterstring, df)

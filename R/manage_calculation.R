@@ -197,10 +197,12 @@ render_matrix<-function(cellsdf, author='Adam Ryczkowski', format='docx', title=
     chapter_path<-cellsdf[['.chapter']][[i]]
 
 
+    target_chapter<-doc$get_chapter_by_path(chapter_path)
     raw_chapters<-do_cell(cellsdf = cellsdf, cellnr = i, stats_dispatchers = stats_dispatchers, report_dispatchers = report_dispatchers,
                          report_functions = report_functions, aggregates = aggregates, filters = filters, df_task = df_task,
-                         chapter_path=chapter_path,
+                         chapter_path=chapter_path, chapter = target_chapter,
                          chart_foldername=chart_foldername, cache_foldername=cache_foldername)
+    #browser()
     raw_chapters$set_property('cellnr', i, indepth_level=1)
     raw_chapters$set_property('rownr', cellsdf$rownr[[i]], indepth_level=1)
     raw_chapters$set_property('colnr', cellsdf$colnr[[i]], indepth_level=1)
@@ -210,8 +212,7 @@ render_matrix<-function(cellsdf, author='Adam Ryczkowski', format='docx', title=
     raw_chapters$set_property('f', cellsdf$filter.filterstring[[i]], indepth_level=1)
     raw_chapters$set_property('dispatcher', cellsdf$dispatcher[[i]], indepth_level=1)
 #    browser()
-    target_chapter<-doc$get_chapter_by_path(chapter_path)
-    raw_chapters$insert_into(target_chapter)
+    #raw_chapters$insert_into(target_chapter)
   }
 
 
@@ -405,7 +406,7 @@ split_paths<-function(str_path) {
 #' @return List of results gathered by running the cell
 #'
 do_cell<-function(cellsdf, stats_dispatchers, report_dispatchers=list(), report_functions=list(),
-                  aggregates=list(), filters, cellnr, df_task, chapter_path, cache_foldername, chart_foldername){
+                  aggregates=list(), filters, cellnr, df_task, chapter = NULL, chapter_path, cache_foldername, chart_foldername){
 
   #Sanity checks
 
@@ -536,7 +537,13 @@ do_cell<-function(cellsdf, stats_dispatchers, report_dispatchers=list(), report_
   all_properties = as.list(cellsdf[cellnr,])
 
   #browser()
-  chapter<-doc_Standalone_Chapter$new(chart_foldername = chart_foldername, cache_foldername = cache_foldername)
+  if(is.null(chapter)) {
+    chapter<-doc_Standalone_Chapter$new(chart_foldername = chart_foldername, cache_foldername = cache_foldername)
+  } else {
+    #Insert chart_foldername and cache_foldername
+    chapter$.__enclos_env__$private$cache_foldername_<-cache_foldername
+    chapter$.__enclos_env__$private$chart_foldername_<-chart_foldername
+  }
   dispatcher_name<-as.character(cellsdf[[dispatcher_propname]][[cellnr]])
   stats_dispatcher<-stats_dispatchers[[dispatcher_name]]
   report_dispatcher<-report_dispatchers[[dispatcher_name]]

@@ -8,12 +8,9 @@ if(!dir.exists(dirname(plot_image_tmpfilename))) {
 }
 
 
-if(!is.null(draw_function)){
+if(!is.null(gg)){
   if(chart_postprocess) {
-    png(plot_image_tmpfilename, width = 18.5, height = 15, units='cm', res=dpi)
-    draw_function()
-    dev.off();
-
+    suppressWarnings(ggplot2::ggsave(plot=gg,filename=plot_image_tmpfilename, height=15, width=18.5, dpi = dpi, units='cm', device = 'png'))
     if(!file.exists(plot_image_tmpfilename)) {
       browser()
     }
@@ -24,8 +21,6 @@ if(!is.null(draw_function)){
            ignore.stdout = TRUE, ignore.stderr = TRUE, wait = TRUE)
 
   } else {
-    png(plot_image_filename, width = 18.5, height = 15, units='cm', res=dpi)
-    draw_function()
-    dev.off();
+    suppressWarnings(ggplot2::ggsave(plot=gg,filename=plot_image_filename, height=15, width=18.5, dpi = dpi, units='cm', device = 'png'))
   }
 }

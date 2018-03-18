@@ -1,4 +1,4 @@
-
+#This function also makes a side-effect for the aggregates - it load the input variables' metadata
 read_matrix<-function(filename='shared/macierze_analiz.xlsx', dt_structure=NULL, aggregate_types=list())
 {
   if(is.null(dt_structure)){
@@ -43,6 +43,10 @@ read_matrix<-function(filename='shared/macierze_analiz.xlsx', dt_structure=NULL,
   filter<-which(tododf[[varname]]=='')
   if(length(filter)>0) {
     data.table::set(tododf, filter, varname, tododf[[props$groupvar]][filter])
+  }
+
+  for(a in aggregate_types) {
+    a$.__enclos_env__$private$discover_metadata(dt_structure)
   }
 
   return(tododf)

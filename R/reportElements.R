@@ -143,7 +143,7 @@ doc_reportElement<-R6::R6Class(
       if(missing(value)) {
         private$parent_$discard_changes
       } else {
-        private$parent_$discard_changes<-newValue
+        private$parent_$discard_changes<-value
       }
     }
   ),
@@ -269,7 +269,7 @@ doc_container<-R6::R6Class(
       if(missing(value)) {
         private$parent_$discard_changes
       } else {
-        private$parent_$discard_changes<-newValue
+        private$parent_$discard_changes<-value
       }
     }
   ),
@@ -340,8 +340,13 @@ doc_Insertable<-R6::R6Class(
       self$add_element(tbl)
       return(tbl$label)
     },
-    insert_chart=function(caption, gg, chart_prefix, tags=character(0)) {
-      cht<-doc_chart$new(parent=self, tags=tags, chart_caption=caption, gg=gg, chart_prefix = chart_prefix)
+    insert_ggchart=function(caption, gg, chart_prefix, tags=character(0)) {
+      cht<-doc_ggchart$new(parent=self, tags=tags, chart_caption=caption, gg=gg, chart_prefix = chart_prefix)
+      self$add_element(cht)
+      return(cht$label)
+    },
+    insert_chart=function(caption, draw_function, chart_prefix, tags=character(0)) {
+      cht<-doc_chart$new(parent=self, tags=tags, draw_function=draw_function, chart_caption=caption, chart_prefix = chart_prefix)
       self$add_element(cht)
       return(cht$label)
     },
@@ -382,7 +387,7 @@ doc_section<-R6::R6Class(
       super$render(doc)
     },
     address_string=function() {
-      text<-paste0(c(private$number_, self$parent$address_string()), collapse = '.')
+      text<-paste0(c(private$text_, self$parent$address_string()), collapse = '|')
       return(text)
     },
     render_reference=function(doc, target_element) {

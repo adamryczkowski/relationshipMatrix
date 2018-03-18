@@ -25,7 +25,8 @@
 #library(R6) #Not needed actually; set by the task for us
 #browser()
 dbobj<-relationshipMatrix::ChunkDB$new(chunkdf = chunkdf, depvar = depvar, indepvar = indepvar,
-                                       groupvar = groupvar, filtr = filter)
+                                       groupvar = groupvar, filter = filter, filterNA = filterNA,
+                                       nrow_total=nrow_total)
 pAcc=propertyAccessor$new(properties=properties, db=dbobj, mode=3)
 report_functions<-report_dispatcher(pAcc, statistics)
 learned_properties<-pAcc$.__enclos_env__$private$get_learned_properties_list()
