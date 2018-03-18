@@ -37,7 +37,7 @@ AggregateType<-R6::R6Class(
         if(is.null(private$db_)) {
           stop("Missing database. This function can be used only on properly initialized object (inside ChunkDB)")
         }
-        dt <- data.table::copy(private$db_$chunkdf)
+        dt <- data.table::copy(private$db_$chunkdf())
         do_boot <- function(dt, bootstrap_n ) {
           if (nrow(dt)>0) {
             b<-simpleError('')
@@ -70,7 +70,7 @@ AggregateType<-R6::R6Class(
         return(b)
       },
       boot_ivgv=function(bootstrap_n=NA, ncpus=4) {
-
+        #browser()
         b<-self$boot(bootstrap_n = bootstrap_n, ncpus=ncpus)
         if(private$db_$is_grouped()) {
           all_names<-c(private$db_$groupvar_name, private$db_$indepvar_name)
