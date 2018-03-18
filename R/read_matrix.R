@@ -49,6 +49,8 @@ read_matrix<-function(filename='shared/macierze_analiz.xlsx', dt_structure=NULL,
     a$.__enclos_env__$private$discover_metadata(dt_structure)
   }
 
+  tododf$cellnr<-seq_len(nrow(tododf))
+
   return(tododf)
 }
 
