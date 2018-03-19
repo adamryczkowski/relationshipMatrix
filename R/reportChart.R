@@ -68,7 +68,7 @@ doc_chart<-R6::R6Class(
       super$initialize(parent=parent, tags=tags)
       private$chart_caption_<-chart_caption
       private$draw_function_<-draw_function
-      browser()
+      #browser()
       parent_hash<-parent$address_string()
       private$chart_prefix_<-chart_prefix
       private$chart_label_ <- generate_table_hash(parent_hash = parent_hash, label = chart_caption, file_prefix = chart_prefix)
