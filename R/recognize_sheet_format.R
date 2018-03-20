@@ -4,6 +4,10 @@ recognize_sheet_format<-function(sheet) {
   xls_range<-sheet_used_range(sheet)
   all_values<-read_xlsx_cells(sheet, seq(xls_range[['MaxRow']]), seq(xls_range[['MaxCol']]))
 
+  if(length(all_values)<2) {
+    return(ans)
+  }
+
   colnr<-1
   dict<-list()
 

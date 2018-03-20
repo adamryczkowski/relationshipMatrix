@@ -82,6 +82,9 @@ read_sheet<-function(sheet, sheetname, dt_structure, aggregate_types=list())
   all_col_names<-dt_structure$colname
   #The recognize_sheet_format reads the format and parses all default dictionaries
   format<-recognize_sheet_format(sheet = sheet)
+  if(length(format)==0) {
+    return(format)
+  }
 
   #  macierz <-read_xlsx_cells(sheet, rows = 5:rowcount, cols=4:colcount)
   macierz<-format$value_matrix[-1,-1]

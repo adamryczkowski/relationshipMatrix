@@ -101,6 +101,7 @@ doc_reportElement<-R6::R6Class(
       return(tag %in% all_tags)
     },
     debug_text=function() {
+      browser()
       paste0("cellnr: **", self$get_property("cellnr", -1), ' (row ', self$get_property("rownr", -1), ", col ", self$get_property("colnr", -1), ")",
              "**, dv: **", self$get_property("dv", "?"),
              "**, iv: **", self$get_property("iv", "?"),
