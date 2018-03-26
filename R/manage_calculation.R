@@ -217,6 +217,7 @@ render_matrix<-function(cellsdf, author='Adam Ryczkowski', format='docx', title=
     raw_chapters$set_property('gv', cellsdf$groupvar[[i]], indepth_level=1)
     raw_chapters$set_property('f', cellsdf$filter.filterstring[[i]], indepth_level=1)
     raw_chapters$set_property('dispatcher', cellsdf$dispatcher[[i]], indepth_level=1)
+    raw_chapters$set_tag(paste0('dispatcher_', cellsdf$dispatcher[[i]]))
 #    browser()
     #raw_chapters$insert_into(target_chapter)
   }

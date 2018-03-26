@@ -100,6 +100,16 @@ doc_reportElement<-R6::R6Class(
       all_tags<-self$get_tags()
       return(tag %in% all_tags)
     },
+    set_tag=function(tags) {
+      checkmate::assertCharacter(tags, any.missing = FALSE, null.ok = FALSE)
+      #Sets tag on this and all children
+      if(!is.null(private$tags_)) {
+        private$tags_<-unique(c(tags, private$tags_))
+      } else {
+        private$tags_<-unique(tags)
+      }
+      invisible(NULL)
+    },
     debug_text=function() {
       #browser()
       paste0("cellnr: **", self$get_property("cellnr", -1), ' (row ', self$get_property("rownr", -1), ", col ", self$get_property("colnr", -1), ")",
@@ -260,6 +270,13 @@ doc_container<-R6::R6Class(
       }
       ans<-ans[seq_len(i-1)]
       return(ans)
+    },
+    set_tag=function(tags) {
+      supper$set_tag(tags)
+      for(ch in private$children_) {
+        ch$set_tag(tags)
+      }
+      invisible(NULL)
     }
   ),
   active = list(
