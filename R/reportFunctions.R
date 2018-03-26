@@ -40,6 +40,7 @@ filter_doc_rec<-function(doc, filter_fn) {
         if(is.null(ans)) {
           ans<-doc$clone(deep=FALSE)
           ans$.__enclos_env__$private$children_<-list(ans_ch)
+          ans_ch$.__enclos_env__$private$parent_<-ans
         } else {
           ans$.__enclos_env__$private$children_<-c(ans$.__enclos_env__$private$children_, list(ans_ch))
         }
