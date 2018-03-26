@@ -272,7 +272,7 @@ doc_container<-R6::R6Class(
       return(ans)
     },
     set_tag=function(tags) {
-      supper$set_tag(tags)
+      super$set_tag(tags)
       for(ch in private$children_) {
         ch$set_tag(tags)
       }
