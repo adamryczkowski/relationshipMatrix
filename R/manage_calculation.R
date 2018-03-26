@@ -202,8 +202,8 @@ render_matrix<-function(cellsdf, author='Adam Ryczkowski', format='docx', title=
 
     chapter_path<-cellsdf[['.chapter']][[i]]
 
-
     target_chapter<-doc$get_chapter_by_path(chapter_path)
+
     raw_chapters<-do_cell(cellsdf = cellsdf, cellnr = i, stats_dispatchers = stats_dispatchers, report_dispatchers = report_dispatchers,
                          report_functions = report_functions, aggregates = aggregates, filters = filters, df_task = df_task,
                          chapter_path=chapter_path, chapter = target_chapter,

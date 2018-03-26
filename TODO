@@ -1,0 +1,49 @@
+Zmiany, których celem jest umożliwienie supportu innych komórek, niż takich, które są karmione 2 zmiennymi (+gv).
+
+Rozdz. I. Oddzielenie metadanych od zmiennych
+
+1. pAcc musi zawierać w sobie dwa słowniki właściwości: stary, który dotyczy całej komórki, oraz nowy, który dotyczy zmiennych.
+   Ten nowy będzie zaimplementowany jako słownik "nazwa zmiennej"->"słownik właściwości". Nazwa zmiennej musi być jedną ze zmiennych,
+   których dana uogólniona komórka (nazwyana dalej „Analizą”) dotyczy.
+2. Wszystkie akcesory właściwości zmiennej z db_obj jak i z pAcc muszą przechodzić przez pAcc, tak jak teraz to się odbywa,
+   ale koniecznie trzeba wykluczyć pobieranie metadanych z samych zmiennych.
+
+Rozdz. 2. Nowy interfejs db_obj
+
+1. db_obj będzie zastąpiony przez nową hierarchię obiektów, których celem będzie "wygenerowanie kawałka bazy danych odpowiedniego dla danej komórki".
+   Ta generacja będzie w sobie zawierała również liczenie bootstrapów, jeśli zmienne zawierają agregaty.
+2. Obiekt z hierarchii db_obj będzie składał się z jednej lub więcej zmiennej zależnej, zero lub więcej zmiennej niezależnej,
+   jednej lub więcej zmiennej grupującej (z tym że zmienna grupująca musi być factorem nominalnym) oraz ewentualnie filtra.
+3. Wszystkie lub żadna ze zmiennych zależnych może być agregatami.
+4. Wszystkie lub żadna ze zmiennych niezależnych może być agregatami.
+5. Nie mogą jednocześnie zmienne niezależne jak i zmienne zależne być agregatami.
+6. Tak jak teraz, db_obj zawiera w sobie bazę danych z brakami danych. Braki danych stają się wyłączone z analizy na prośbę konkretnych dispatcherów
+7. Generowanie zbioru bootstrap odbywa się na etapie przygotowywania zbioru danych a nie statistics dispatcher.
+
+Rozdz. 3. Nowa konstrukcja dispatchera.
+
+1. Dispatcher nie będzie już więcej funkcją, ale będzie realizacją klasy R6 (singleton).
+2. Dispatcher będzie zawierał następujące rzeczy:
+   a) funkcję liczącą statystykę (czyli tą oryginalną)
+   b) informację dot. tego, jaka jest polityka wg. braków danych; tj. które braki odrzucić (domyślnie: wszystkie) a które zostawić. W przypadku odrzucania braków, będzie wygenerowany raport braków.
+   c) Jaki rodzaj i jaki zakres liczności zmiennych zależnych (np. więcej niż jedna)
+   d) Jaki rodzaj i jaki zakres liczności zmiennych niezależnych (np. 1-3)
+   e) Jaki rodzaj i jaki zakres liczności zmiennych grupujących (np. max. jedna)
+   f) Czy rozróżnia na zmienne zależne i niezależne
+   g) Funkcja licząca wagę dispatchera dla zadanych wierszy tododf - potrzebna w przypadku, gdy trzeba porównać kilka wariantów podziału analizy na hipotezy.
+
+Rozdz. 4. Nowy format tododf i nowa funkcja sortująca
+
+1. Tododf będzie zawierał tak jak wcześniej, nazwę dispatchera, ale teraz będzie ona dotyczyła instancji klasy (ale w odróżnieniu od agregatów, funkcja nie będzie musiała być przekazywana przez użytkownika, choć oczywiście będzie mogła być)
+2. Funkcja sortująca, która przyporządkowywuje dispatchery do wierszy z tododf, będzie dużo bardziej złożona, bo będzie odpowiedzialna za odnajdywanie
+   również złożonych dispatcherów (np. robiących macierz korelacji)
+3. Produktem funkcji sortującej będzie lista analiz (kroków obliczeń) do zrobienia w formie tabeli: <dispatcher> <iv> <dv> <gv> <filter> ...,
+   gdzie ... będą opcjami wczytanymi z macierzy_zależności.xlsx.
+3. Algorytm będzie opisany poniżej.
+
+
+Rozdz. 5. Zmiany nie związane z problemem
+
+1. Niech funkcje generujące raport będą rejestrowane w pAcc, podobnie jak funkcja kolejkująca raport. W ten sposób można dodać więcej
+   ważnych informacji - przede wszystkim określić, które elementy obiektu statistics przekazać funkcji generującej raport. Ale w przyszości może być
+   też więcej.

@@ -142,6 +142,9 @@ ChunkDB<-R6::R6Class(
           FALSE
         }
       },
+      hash = function() {
+        df_digest(private$chunkdf_)
+      },
       chunkdf = function(flag_include_NA=FALSE) {
         checkmate::assertFlag(flag_include_NA)
         if(private$flag_never_serve_df_) {

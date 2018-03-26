@@ -18,8 +18,8 @@ doc_table<-R6::R6Class(
       private$strong_cols_<-strong_cols
 
       private$table_df_<-table_df
-      parent_hash<-parent$address_string()
-      private$tab_label_ <- generate_table_hash(parent_hash = parent_hash, label = table_caption)
+      cell_hash<-self$get_property('cell_hash')
+      private$tab_label_ <- generate_table_hash(cell_hash = cell_hash, label = table_caption)
     },
     render=function(doc) {
       #browser()
@@ -50,8 +50,8 @@ doc_table<-R6::R6Class(
 )
 
 
-generate_table_hash<-function(prefix='', parent_hash, label, file_prefix='') {
-  ans<-list(parent_hash=parent_hash, label=label, file_prefix=file_prefix)
+generate_table_hash<-function(prefix='', cell_hash, label, file_prefix='') {
+  ans<-list(cell_hash=cell_hash, label=label, file_prefix=file_prefix)
 
   return(paste0(prefix, gen_nice_serial(ans, 8)))
 }

@@ -352,8 +352,8 @@ doc_Insertable<-R6::R6Class(
       return(cht$label)
     },
     get_object_hash=function(caption, file_prefix) {
-      parent_hash<-self$address_string()
-      generate_table_hash(parent_hash = parent_hash, label = caption, file_prefix = file_prefix)
+      cell_hash<-self$get_property('cell_hash')
+      generate_table_hash(cell_hash = cell_hash, label = caption, file_prefix = file_prefix)
     },
     insert_reference_chapter=function(title, id) {
       browser() #TODO
@@ -589,18 +589,21 @@ doc_Void_Document<-R6::R6Class(
                           emph_rows=NULL, emph_cols=NULL,
                           strong_rows=NULL, strong_cols=NULL) {
       #Fake everything
-      parent_hash<-parent$address_string()
-      hash<-self$generate_table_hash(parent_hash = parent_hash, label = caption)
+      cell_hash<-self$get_property('cell_hash')
+
+      hash<-self$generate_table_hash(cell_hash = cell_hash, label = caption)
       return(hash)
     },
     insert_ggchart=function(caption, gg, chart_prefix, tags=character(0)) {
-      parent_hash<-parent$address_string()
-      hash<-self$generate_table_hash(parent_hash = parent_hash, label = caption, file_prefix = chart_prefix )
+      #Fake everything
+      cell_hash<-self$get_property('cell_hash')
+      hash<-self$generate_table_hash(cell_hash = cell_hash, label = caption, file_prefix = chart_prefix )
       return(hash)
     },
     insert_chart=function(caption, draw_function, chart_prefix, tags=character(0)) {
-      parent_hash<-parent$address_string()
-      hash<-self$generate_table_hash(parent_hash = parent_hash, label = caption, file_prefix = chart_prefix )
+      #Fake everything
+      cell_hash<-self$get_property('cell_hash')
+      hash<-self$generate_table_hash(cell_hash = cell_hash, label = caption, file_prefix = chart_prefix )
       return(cht$label)
     },
     insert_reference_chapter=function(title, id) {

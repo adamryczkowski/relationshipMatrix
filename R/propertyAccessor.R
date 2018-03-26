@@ -122,6 +122,14 @@ propertyAccessor<-R6::R6Class("propertyAccessor",
         db<-db$reversed()
       }
       return(db)
+    },
+    #Returns hash of all gathered arguments & db
+    hash=function(extra_obj=NULL) {
+#      browser()
+      pnames<-names(private$all_properties_)
+      l<-private$all_properties[order(pnames)]
+      df_hash<-private$db_$hash()
+      gen_nice_serial(list(properties=l, df=df_hash, statistics=extra_obj), 8)
     }
   ),
   active = list(

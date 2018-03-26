@@ -11,7 +11,8 @@ doc_ggchart<-R6::R6Class(
       private$gg_<-gg
       parent_hash<-parent$address_string()
       private$chart_prefix_<-chart_prefix
-      private$chart_label_ <- generate_table_hash(parent_hash = parent_hash, label = chart_caption, file_prefix = chart_prefix)
+      cell_hash<-self$get_property('cell_hash')
+      private$chart_label_ <- generate_table_hash(cell_hash = cell_hash, label = chart_caption, file_prefix = chart_prefix)
     },
     render=function(doc) {
       if(is.na(private$rendered_chart_path_)) {
