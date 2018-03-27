@@ -186,7 +186,7 @@ filter_info<-function(pAcc, language='PL', chapter) {
         draw_chart_fn<-function() {
           gplots::venn(lista, simplify = TRUE)
         }
-        caption<-paste0("Diagram Venna przedstawiający pochodzenie braków danych. Elipsami oznaczono zmienne, które są odpowiedzialne za braki danych a wewnątrze elips liczbę braków pochodzących od tych zmiennych, wewnątrz których liczba jest umieszczona. ")
+        caption<-paste0("Diagram Venna przedstawiający pochodzenie braków danych. Elipsami oznaczono zmienne, które są odpowiedzialne za braki danych a wewnątrz elips wpisano liczbę braków pochodzących od tych zmiennych. ")
         chapter$insert_chart(caption=caption, draw_function=draw_chart_fn, chart_prefix="venn", tags=tags)
         return()
       }
