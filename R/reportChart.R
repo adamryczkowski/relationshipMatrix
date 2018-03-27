@@ -68,7 +68,7 @@ doc_chart<-R6::R6Class(
       checkmate::assertClass(draw_function, 'function')
       super$initialize(parent=parent, tags=tags)
       private$chart_caption_<-chart_caption
-      private$draw_function_<-draw_function
+      private$draw_function_<-list(fn=draw_function, env=environment(draw_function))
       #browser()
       private$chart_prefix_<-chart_prefix
       cell_hash<-self$get_property('cell_hash')
@@ -95,7 +95,8 @@ doc_chart<-R6::R6Class(
       plot_image_filename<-pathcat::path.cat(private$parent_$get_folders('chart'), paste0(private$chart_prefix_, '_', private$chart_label_, '.png'))
       plot_image_tmpfilename<-tempfile(fileext = '.png')
       if(exists('plot_archive')) rm('plot_archive')
-      draw_function<-private$draw_function_
+      draw_function<-private$draw_function_$fn
+      environment(draw_function)<-private$draw_function_$env
       preprocess_script_path<-system.file('process_one_png.sh', package = 'relationshipMatrix')
       plot_archive<-''
       #Here we would create depwalker object and return it
@@ -113,8 +114,10 @@ doc_chart<-R6::R6Class(
     chart_caption_='',
     chart_prefix_=NA_character_,
     draw_function_=NULL,
+    draw_function_env_=NULL,
     chart_label_='',
     rendered_chart_path_=NA_character_
-  )
+  ),
+  lock_objects = FALSE
 )
 
